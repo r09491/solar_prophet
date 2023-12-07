@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 __doc__="""
-Estimates the power of a given solarpanel from its attitude at a given position
+Estimates the power of a solar panel dependent on different factors
 """
-
 __version__ = "0.0.0"
 __author__ = "sepp.heid@t-online.de"
 
@@ -186,7 +185,7 @@ def parse_arguments():
                         help = "Size of the panel area [m²]")
 
     parser.add_argument('--efficiency', type = float, default = 18.5,
-                        help = "Efficiency of the panel [%%]. Can be used for oth degradations!")
+                        help = "Efficiency of the panel [%%]. Can be used for other degradations!")
 
 
     parser.add_argument('--threshold', type = float, default = 20.0,
@@ -234,7 +233,7 @@ def main():
         logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
         return 6
 
-    logger.info(f'Estimating the power harvest of "{args.panel_name}" on "{args.forecast_day}"' )
+    logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
     logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
     logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.efficiency:.0f}%", Threshold: "{args.threshold:.0f}W"' )
 
@@ -274,4 +273,3 @@ if __name__ == '__main__':
         err = 99
 
     sys.exit(err)
-        
