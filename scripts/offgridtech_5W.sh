@@ -5,5 +5,5 @@ mkdir -p $PANEL_ESTIMATE_STORE_DIR && \
 	    --panel_slope 60
 	    --panel_area 0.032 \
 	    --efficiency 16 \
-            --battery_threshold 0 \
+            --threshold 0 \
 	    --plot $PANEL_ESTIMATE_STORE_DIR

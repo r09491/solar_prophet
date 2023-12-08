@@ -89,7 +89,7 @@ class Panel_Power(object):
             return 1
         
         logger.info(f'Harvest Start:"{dates[pows>0][0].strftime("%H:%M %Z")}", End:"{dates[pows>0][-1].strftime("%H:%M %Z")}"')
-        logger.info(f' Mean:"{np.mean(pows):.0f}W", Max:"{np.max(pows):.0f}W", Total:"{np.sum(pows/60):.0f}Wh", "{np.sum(pows/60/12.8):.0f}Ah"')
+        logger.info(f' Mean:"{np.mean(pows):.0f}W", Max:"{np.max(pows):.0f}W", Total:"{np.sum(pows/60):.0f}Wh", "{np.sum(pows/60/12.5):.0f}Ah"')
 
         return 0
 
@@ -207,8 +207,10 @@ def parse_arguments():
 
 
 def main():
-    args = parse_arguments()
+    print(sys.argv[-1])
 
+    args = parse_arguments()
+        
     if args.lat < -90 or args.lat > 90:
         logger.error('The latitude of the panel position is out of range  "{}".'.format(args.lat))
         return 1
