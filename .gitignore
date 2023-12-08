@@ -2,6 +2,7 @@
 *~
 *.pyc
 *.egg-info
+*.gitconfig
 .vveplug
 __pycache__
 build
