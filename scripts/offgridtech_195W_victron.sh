@@ -17,4 +17,4 @@ mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/cs
 	    --efficiency 2 \
 	    --threshold 0 \
 	    --plot $PANEL_ESTIMATE_STORE_DIR/plot \
-	    --csv $PANEL_ESTIMATE_STORE_DIR/csv
+	    --csv $PANEL_ESTIMATE_STORE_DIR/csv $1

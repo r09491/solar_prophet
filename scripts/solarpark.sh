@@ -16,4 +16,4 @@ mkdir -p $PANEL_ESTIMATE_STORE_DIR && \
 	    --panel_area 480 \
 	    --efficiency 2 \
             --threshold 0 \
-	    --plot $PANEL_ESTIMATE_STORE_DIR
+	    --plot $PANEL_ESTIMATE_STORE_DIR $1
