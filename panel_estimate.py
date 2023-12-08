@@ -207,8 +207,6 @@ def parse_arguments():
 
 
 def main():
-    print(sys.argv[-1])
-
     args = parse_arguments()
         
     if args.lat < -90 or args.lat > 90:
