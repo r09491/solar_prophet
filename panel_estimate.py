@@ -45,7 +45,7 @@ def get_vector(azimuth, altitude):
 
 class Panel_Power(object):
 
-    def __init__(self, lat, lon, name, direction, slope, area, efficiency, threshold, day):
+    def __init__(self, lat, lon, name, direction, slope, area, efficiency, threshold, charge_load,  day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
         stamps = pd.date_range(start = start, periods = 24*60, freq = 'T', tz=tzinfo)
@@ -64,13 +64,14 @@ class Panel_Power(object):
   
         pows = np.dot(sunvecs, get_vector(direction, slope))
         pows *= sunrads*area*efficiency*sunrads.max()/1000
-        ##pows *= area*efficiency  
         pows[pows[:] < threshold] = 0
 
         data = {'altitude' : sunalts, 'azimuth':sunazis,
                 'radiation' : sunrads, 'power' : pows}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
+        self.charge_load = charge_load
+        
         self.tzinfo = tzinfo
         self.name = name
 
@@ -188,11 +189,13 @@ class Panel_Power(object):
         
         axes[3].plot(dates, pows, color='blue', label='Blue')
         axes[3].fill_between(dates, mdf*pows, color='cyan', label='Meteo' )
+        if self.charge_load is not None:
+            axes[3].axhline(self.charge_load, color='magenta', linewidth=3, label='BAT on/off')
         axes[3].legend(loc="upper left")
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[3].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[3].minorticks_on()
-        
+
         title = f'Power Forecast #'
         title +=  f' {direction:.0f}°/{slope:.0f}°'
         title +=  f' {area:.2f}m² {efficiency:.0f}%'
@@ -257,11 +260,14 @@ def parse_arguments():
                         help = "Size of the panel area [m²]")
 
     parser.add_argument('--panel_efficiency', type = float, default = 18.5,
-                        help = "Nominal Efficiency of the panel [%%] as per spec relative to 1000 [W/m²]")
+                        help = "Nominal efficiency of the panel [%%] as per spec relative to 1000 [W/m²]")
 
     parser.add_argument('--threshold', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
 
+    parser.add_argument('--charge_load', type = float, default = None,
+                        help = "Threshold when to charge battery [W]")
+    
     parser.add_argument('--plot', default = None,
                         help = "Directory for saving of the plots if needeed")
 
@@ -299,14 +305,18 @@ def main():
     if args.panel_efficiency < 0 or args.panel_efficiency > 100:
         logger.error('The efficiency of the panel is out of range  "{}".'.format(args.panel_efficiency))
         return 5
+
+    if args.charge_load is not None and args.charge_load < 0:
+        logger.error('The charge load is out of range  "{}".'.format(args.charge_load))
+        return 6
     
     if not args.plot is None and not os.path.isdir(args.plot):
         logger.error('The directory to save the plots does not exist "{}".'.format(args.plot))
-        return 6
+        return 7
 
     if not args.csv is None and not os.path.isdir(args.csv):
         logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
-        return 7
+        return 8
 
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
     logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
@@ -320,6 +330,7 @@ def main():
                      args.panel_area,
                      args.panel_efficiency / 100, \
                      args.threshold,
+                     args.charge_load,
                      args.forecast_day)
 
     errcode = pp.summarize()
