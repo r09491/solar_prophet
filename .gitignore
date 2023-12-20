@@ -4,6 +4,8 @@
 *.egg-info
 *.gitconfig
 .vveplug
+a.sh
+b.sh
 __pycache__
 build
 

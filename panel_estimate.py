@@ -26,6 +26,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(os.path.basename(sys.argv[0]))
 
 
+""" Derived from Deutscher Wetterdienst tables
+Ratio of average measured harvest per month / max harvest
+"""
+METEO_DUMP_FACTOR = [
+    0.15, 0.25, 0.60, 0.65, 0.78, 0.79, 
+    0.80, 0.74, 0.49, 0.36, 0.15, 0.15
+]
+
+
 def get_vector(azimuth, altitude):
     azi, alt = np.radians(azimuth), np.radians(altitude) 
     dir = np.array([np.sin(azi), np.cos(azi), np.tan(alt)])
@@ -53,13 +62,13 @@ class Panel_Power(object):
         sunrads = np.array(rads)[is_sun]
         sunvecs = np.array(vecs)[is_sun]
   
-        powers = np.dot(sunvecs, get_vector(direction, slope))
-        powers *= sunrads
-        powers *= area*efficiency  
-        powers[powers[:] < threshold] = 0
+        pows = np.dot(sunvecs, get_vector(direction, slope))
+        pows *= sunrads*area*efficiency*sunrads.max()/1000
+        ##pows *= area*efficiency  
+        pows[pows[:] < threshold] = 0
 
         data = {'altitude' : sunalts, 'azimuth':sunazis,
-                'radiation' : sunrads, 'power' : powers}
+                'radiation' : sunrads, 'power' : pows}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
         self.tzinfo = tzinfo
@@ -80,17 +89,52 @@ class Panel_Power(object):
         maxazi = azis[maxindex]
         maxalt = alts[maxindex]
 
-        logger.info(f'Sun Rise:"{dates[0].strftime("%H:%M %Z")}", Set:"{dates[-1].strftime("%H:%M %Z")}"')
-        logger.info(f' Mean:"{np.mean(rads):.0f}W/m²", Max:"{np.max(rads):.0f}W/m²", Total:"{np.sum(rads):.0f}Wh/m²"')
-        logger.info(f' Azimuth/Altitude (Max): "{maxazi:.0f}/{maxalt:.0f}" @ "{maxdate.strftime("%H:%M %Z")}"')
-
         if len(dates[pows>0]) == 0:
             logger.info("No Harvesting in the provided configuration!")
             return 1
-        
-        logger.info(f'Harvest Start:"{dates[pows>0][0].strftime("%H:%M %Z")}", End:"{dates[pows>0][-1].strftime("%H:%M %Z")}"')
-        logger.info(f' Mean:"{np.mean(pows):.0f}W", Max:"{np.max(pows):.0f}W", Total:"{np.sum(pows/60):.0f}Wh", "{np.sum(pows/60/12.5):.0f}Ah"')
 
+        text = f'Max Radiation Attitude #'
+        text += f' "{maxazi:.0f}/{maxalt:.0f}"'
+        text += f' @ "{maxdate.strftime("%H:%M %Z")}"'
+        logger.info(text)
+
+        text = f'Sun # Rise:"{dates[0].strftime("%H:%M %Z")}",'
+        text += f' Set:"{dates[-1].strftime("%H:%M %Z")}"'
+        logger.info(text)
+
+        text = f' Blue #'
+        text += f' Mean:"{np.mean(rads):.0f}W/m²",'
+        text += f' Max:"{np.max(rads):.0f}W/m²",'
+        text += f' Total:"{np.sum(rads):.0f}Wh/m²"'
+        logger.info(text)
+
+        month = dates[0].month
+        mdf = METEO_DUMP_FACTOR[month-1]
+        
+        text = f' Meteo #'
+        text += f' Mean:"{np.mean(mdf*rads):.0f}W/m²",'
+        text += f' Max:"{np.max(mdf*rads):.0f}W/m²",'
+        text += f' Total:"{np.sum(mdf*rads):.0f}Wh/m²"'
+        logger.info(text)
+
+        text = f'Harvest # Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
+        text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}"'
+        logger.info(text)
+        
+        text = f' Blue #'
+        text += f' Mean:"{np.mean(pows):.0f}W",'
+        text += f' Max:"{np.max(pows):.0f}W",'
+        text += f' Total:"{np.sum(pows/60):.0f}Wh",'
+        text += f' "{np.sum(pows/60/12.5):.0f}Ah"'
+        logger.info(text)
+
+        text = f' Meteo #'
+        text += f' Mean:"{np.mean(mdf*pows):.0f}W",'
+        text += f' Max:"{np.max(mdf*pows):.0f}W",'
+        text += f' Total:"{np.sum(mdf*pows/60):.0f}Wh",'
+        text += f' "{np.sum(mdf*pows/60/12.5):.0f}Ah"'
+        logger.info(text)
+        
         return 0
 
     
@@ -98,14 +142,21 @@ class Panel_Power(object):
         dformatter = mdates.DateFormatter('%H:%M')
         dformatter.set_tzinfo(self.tzinfo)
 
-        fig, axes = plt.subplots(nrows=5, figsize=(9,9))
-
-        today = self.df.index[0].strftime("%Y-%m-%d")
+        dates = self.df.index
+        azis = self.df.azimuth
+        alts = self.df.altitude
+        rads = self.df.radiation
         pows = self.df.power
-        text = f'Power Forecast {today}'
+
+        month = dates[0].month
+        mdf = METEO_DUMP_FACTOR[month-1]
+
+        today = dates[0].strftime("%Y-%m-%d")
+        text = f'{self.name} Forecast {today}'
+        fig, axes = plt.subplots(nrows=5, figsize=(9,12))
         fig.text(0.5, 0.0, text, ha='center', fontsize='x-large')
 
-        axes[0].plot(self.df.index, self.df.azimuth)
+        axes[0].plot(dates, azis, color='red')
         axes[0].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[0].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[0].minorticks_on()
@@ -113,7 +164,7 @@ class Panel_Power(object):
         axes[0].set_ylabel('Azimuth [deg]')
         axes[0].xaxis.set_major_formatter(dformatter)
 
-        axes[1].plot(self.df.index, self.df.altitude)
+        axes[1].plot(dates, alts, color='red')
         axes[1].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[1].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[1].minorticks_on()
@@ -121,27 +172,48 @@ class Panel_Power(object):
         axes[1].set_ylabel('Altitude [deg]')
         axes[1].xaxis.set_major_formatter(dformatter)
 
-        axes[2].plot(self.df.index, self.df.radiation, color='red')
+        axes[2].plot(dates, rads, color='blue', label='Blue')
+        axes[2].fill_between(dates, mdf*rads, color='cyan', label='Meteo')
+        axes[2].legend(loc="upper left")
         axes[2].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[2].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[2].minorticks_on()
-        axes[2].set_title(f'Sun Radiation @ {lat:.2f}/{lon:.2f}')
+        title = f'Sun Radiation @ {lat:.2f}/{lon:.2f}, '
+        title +=  f' {np.mean(rads):.0f}W/m²^{np.max(rads):.0f}W/m²'
+        title +=  f' ({np.mean(mdf*rads):.0f}W/m²^{np.max(mdf*rads):.0f}W/m²)'
+        axes[2].set_title(title)
         axes[2].set_ylabel('Radiation [W/m²]')
         axes[2].xaxis.set_major_formatter(dformatter)
 
-        axes[3].plot(self.df.index, self.df.power, color='brown')
+        
+        axes[3].plot(dates, pows, color='blue', label='Blue')
+        axes[3].fill_between(dates, mdf*pows, color='cyan', label='Meteo' )
+        axes[3].legend(loc="upper left")
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[3].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[3].minorticks_on()
-        axes[3].set_title(f'{self.name} Power Forecast # {direction:.0f}°/{slope:.0f}°  {area:.2f}m² {efficiency:.0f}%  {np.mean(pows):.0f}W|{np.max(pows):.0f}W' )
+        
+        title = f'Power Forecast #'
+        title +=  f' {direction:.0f}°/{slope:.0f}°'
+        title +=  f' {area:.2f}m² {efficiency:.0f}%'
+        title +=  f' {np.mean(pows):.0f}W^{np.max(pows):.0f}W'
+        title +=  f' ({np.mean(mdf*pows):.0f}W^{np.max(mdf*pows):.0f}W)'
+        axes[3].set_title(title )
+
         axes[3].set_ylabel('Power [W]')
         axes[3].xaxis.set_major_formatter(dformatter)
 
-        axes[4].plot(self.df.index, np.cumsum(self.df.power/60), color='green')
+        
+        axes[4].plot(dates, np.cumsum(pows/60), color='blue', label='Blue')
+        axes[4].fill_between(dates, np.cumsum(mdf*pows/60), color='cyan', label='Meteo')
+        axes[4].legend(loc="upper left")
         axes[4].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[4].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[4].minorticks_on()
-        axes[4].set_title(f'{self.name} Harvest Forecast + {np.sum(pows)/60:.0f}Wh')
+        title = f'Harvest Forecast'
+        title += f' + {np.sum(pows)/60:.0f}Wh'
+        title += f' ({np.sum(mdf*pows)/60:.0f}Wh)'
+        axes[4].set_title(title)
         axes[4].set_ylabel('Work [Wh]')
         axes[4].xaxis.set_major_formatter(dformatter)
 
@@ -184,12 +256,11 @@ def parse_arguments():
     parser.add_argument('--panel_area', type = float, default = 0.39*0.78*3,
                         help = "Size of the panel area [m²]")
 
-    parser.add_argument('--efficiency', type = float, default = 18.5,
-                        help = "Efficiency of the panel [%%]. Can be used for other degradations!")
-
+    parser.add_argument('--panel_efficiency', type = float, default = 18.5,
+                        help = "Nominal Efficiency of the panel [%%] as per spec relative to 1000 [W/m²]")
 
     parser.add_argument('--threshold', type = float, default = 20.0,
-                        help = "Threshold when battery accepts input power [W]")
+                        help = "Threshold when system accepts input power [W]")
 
     parser.add_argument('--plot', default = None,
                         help = "Directory for saving of the plots if needeed")
@@ -225,17 +296,21 @@ def main():
         logger.error('The slope of the panel is out of range  "{}".'.format(args.panel_slope))
         return 4
 
+    if args.panel_efficiency < 0 or args.panel_efficiency > 100:
+        logger.error('The efficiency of the panel is out of range  "{}".'.format(args.panel_efficiency))
+        return 5
+    
     if not args.plot is None and not os.path.isdir(args.plot):
         logger.error('The directory to save the plots does not exist "{}".'.format(args.plot))
-        return 5
+        return 6
 
     if not args.csv is None and not os.path.isdir(args.csv):
         logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
-        return 6
+        return 7
 
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
     logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
-    logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.efficiency:.0f}%", Threshold: "{args.threshold:.0f}W"' )
+    logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.panel_efficiency:.0f}%", Threshold: "{args.threshold:.0f}W"' )
 
     pp = Panel_Power(args.lat, \
                      args.lon, \
@@ -243,7 +318,7 @@ def main():
                      args.panel_direction, \
                      args.panel_slope, \
                      args.panel_area,
-                     args.efficiency / 100, \
+                     args.panel_efficiency / 100, \
                      args.threshold,
                      args.forecast_day)
 
@@ -256,7 +331,7 @@ def main():
         save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%Y-%m-%d") + '.png'
         pp.save_plot(os.path.join(args.plot, save_name), \
                      args.lat, args.lon, args.panel_direction, \
-                     args.panel_slope, args.panel_area, args.efficiency)
+                     args.panel_slope, args.panel_area, args.panel_efficiency)
         logger.info(f'Plot saved to  "{os.path.join(args.plot, save_name)}"' )
 
     if not args.csv is None:            
