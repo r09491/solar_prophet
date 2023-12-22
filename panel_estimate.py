@@ -85,7 +85,7 @@ class Panel_Power(object):
             logger.info("No Harvesting in the provided configuration!")
             return 1
 
-        text = f'Max Radiation Attitude #'
+        text = f'Best Radiation Attitude #'
         text += f' "{maxazi:.0f}/{maxalt:.0f}"'
         text += f' @ "{maxdate.strftime("%H:%M %Z")}"'
         logger.info(text)
@@ -156,19 +156,13 @@ class Panel_Power(object):
         axes[2].set_ylabel('Radiation [W/m²]')
         axes[2].xaxis.set_major_formatter(dformatter)
 
-        
+
         batpows = pows
-        batischarge = batpows > 0
-        if self.battery_split is not None:
-            axes[3].fill_between(dates, pows, color='cyan', label='House', alpha=0.4)
+        batischarge = batpows > self.battery_split
+                
+        axes[3].fill_between(dates, pows,
+                             color='magenta', label='BAT', alpha=0.4)
 
-            batpows = pows - self.battery_split
-            batischarge = batpows > 0
-
-        axes[3].fill_between(dates[batischarge], batpows[batischarge],
-                             color='magenta', label='BAT', alpha=0.8)
-            
-        axes[3].legend(loc="upper left")
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[3].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[3].minorticks_on()
@@ -181,11 +175,7 @@ class Panel_Power(object):
 
         axes[3].set_ylabel('Power [W]')
         axes[3].xaxis.set_major_formatter(dformatter)
-
-        if self.battery_split is not None:
-            powsums = np.cumsum(pows/60)
-            axes[4].fill_between(dates, powsums, color='cyan', label='House')
-
+        
         batsums = np.cumsum(batpows/60)
         axes[4].fill_between(dates, batsums, color='black', label='Lost', alpha=0.6)
         
@@ -200,8 +190,18 @@ class Panel_Power(object):
             if batlost.any():
                 axes[3].fill_between(dates[batlost], batpows[batlost],
                                      color='black', label='LOST', alpha=0.6)
-                axes[3].legend(loc="upper left")
 
+        if self.battery_split is not None:
+            powissplit = pows >= self.battery_split
+            pows[powissplit] =  self.battery_split
+            axes[3].fill_between(dates, pows, color='cyan', label='House', alpha=0.8)
+
+            axes[3].axhline(self.battery_split, color='black', linewidth=2, label='SPLIT')
+
+            powsums = np.cumsum(pows/60)
+            axes[4].fill_between(dates, powsums, color='cyan', label='House')
+
+        axes[3].legend(loc="upper left")
             
         axes[4].legend(loc="upper left")
         axes[4].grid(which='major', linestyle='-', linewidth=2, axis='both')
@@ -253,7 +253,7 @@ def parse_arguments():
                         help = "Size of the panel area [m²]")
 
     parser.add_argument('--panel_efficiency', type = float, default = 18.5,
-                        help = "Nominal efficiency of the panel [%%] relative to 1000 [W/m²] as per spec")
+                        help = "Nominal efficiency of the panel [%%]. There is a best value relative to 1000 [W/m²] in the data sheets. This can propably not ne achieved. Can be reduced for degradations like scattered sky etc")
 
     parser.add_argument('--threshold', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
