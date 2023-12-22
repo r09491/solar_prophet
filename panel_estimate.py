@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 __doc__="""
-Estimates the power of a solar panel dependent on different factors
+Estimates the power of a solar panel dependent on different factors.
 """
 __version__ = "0.0.0"
 __author__ = "sepp.heid@t-online.de"
@@ -26,15 +26,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(os.path.basename(sys.argv[0]))
 
 
-""" Derived from Deutscher Wetterdienst tables
-Ratio of average measured harvest per month / max harvest
-"""
-METEO_DUMP_FACTOR = [
-    0.15, 0.25, 0.60, 0.65, 0.78, 0.79, 
-    0.80, 0.74, 0.49, 0.36, 0.15, 0.15
-]
-
-
 def get_vector(azimuth, altitude):
     azi, alt = np.radians(azimuth), np.radians(altitude) 
     dir = np.array([np.sin(azi), np.cos(azi), np.tan(alt)])
@@ -45,7 +36,7 @@ def get_vector(azimuth, altitude):
 
 class Panel_Power(object):
 
-    def __init__(self, lat, lon, name, direction, slope, area, efficiency, threshold, charge_load,  day):
+    def __init__(self, lat, lon, name, direction, slope, area, efficiency, threshold, battery_split, battery_full, day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
         stamps = pd.date_range(start = start, periods = 24*60, freq = 'T', tz=tzinfo)
@@ -63,19 +54,19 @@ class Panel_Power(object):
         sunvecs = np.array(vecs)[is_sun]
   
         pows = np.dot(sunvecs, get_vector(direction, slope))
-        pows *= sunrads*area*efficiency*sunrads.max()/1000
+        pows *= sunrads*area*efficiency
         pows[pows[:] < threshold] = 0
 
         data = {'altitude' : sunalts, 'azimuth':sunazis,
                 'radiation' : sunrads, 'power' : pows}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
-        self.charge_load = charge_load
+        self.battery_split = battery_split
+        self.battery_full = battery_full
         
         self.tzinfo = tzinfo
         self.name = name
 
-        
         
     def summarize(self):
         dates = self.df.index
@@ -103,37 +94,19 @@ class Panel_Power(object):
         text += f' Set:"{dates[-1].strftime("%H:%M %Z")}"'
         logger.info(text)
 
-        text = f' Blue #'
-        text += f' Mean:"{np.mean(rads):.0f}W/m²",'
+        text = f' Mean:"{np.mean(rads):.0f}W/m²",'
         text += f' Max:"{np.max(rads):.0f}W/m²",'
         text += f' Total:"{np.sum(rads):.0f}Wh/m²"'
-        logger.info(text)
-
-        month = dates[0].month
-        mdf = METEO_DUMP_FACTOR[month-1]
-        
-        text = f' Meteo #'
-        text += f' Mean:"{np.mean(mdf*rads):.0f}W/m²",'
-        text += f' Max:"{np.max(mdf*rads):.0f}W/m²",'
-        text += f' Total:"{np.sum(mdf*rads):.0f}Wh/m²"'
         logger.info(text)
 
         text = f'Harvest # Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
         text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}"'
         logger.info(text)
         
-        text = f' Blue #'
-        text += f' Mean:"{np.mean(pows):.0f}W",'
+        text = f' Mean:"{np.mean(pows):.0f}W",'
         text += f' Max:"{np.max(pows):.0f}W",'
         text += f' Total:"{np.sum(pows/60):.0f}Wh",'
         text += f' "{np.sum(pows/60/12.5):.0f}Ah"'
-        logger.info(text)
-
-        text = f' Meteo #'
-        text += f' Mean:"{np.mean(mdf*pows):.0f}W",'
-        text += f' Max:"{np.max(mdf*pows):.0f}W",'
-        text += f' Total:"{np.sum(mdf*pows/60):.0f}Wh",'
-        text += f' "{np.sum(mdf*pows/60/12.5):.0f}Ah"'
         logger.info(text)
         
         return 0
@@ -148,9 +121,6 @@ class Panel_Power(object):
         alts = self.df.altitude
         rads = self.df.radiation
         pows = self.df.power
-
-        month = dates[0].month
-        mdf = METEO_DUMP_FACTOR[month-1]
 
         today = dates[0].strftime("%Y-%m-%d")
         text = f'{self.name} Forecast {today}'
@@ -173,24 +143,31 @@ class Panel_Power(object):
         axes[1].set_ylabel('Altitude [deg]')
         axes[1].xaxis.set_major_formatter(dformatter)
 
-        axes[2].plot(dates, rads, color='blue', label='Blue')
-        axes[2].fill_between(dates, mdf*rads, color='cyan', label='Meteo')
-        axes[2].legend(loc="upper left")
+        
+        axes[2].plot(dates, rads, color='red')
         axes[2].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[2].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[2].minorticks_on()
+
         title = f'Sun Radiation @ {lat:.2f}/{lon:.2f}, '
         title +=  f' {np.mean(rads):.0f}W/m²^{np.max(rads):.0f}W/m²'
-        title +=  f' ({np.mean(mdf*rads):.0f}W/m²^{np.max(mdf*rads):.0f}W/m²)'
         axes[2].set_title(title)
+
         axes[2].set_ylabel('Radiation [W/m²]')
         axes[2].xaxis.set_major_formatter(dformatter)
 
         
-        axes[3].plot(dates, pows, color='blue', label='Blue')
-        axes[3].fill_between(dates, mdf*pows, color='cyan', label='Meteo' )
-        if self.charge_load is not None:
-            axes[3].axhline(self.charge_load, color='magenta', linewidth=3, label='BAT on/off')
+        batpows = pows
+        batischarge = batpows > 0
+        if self.battery_split is not None:
+            axes[3].fill_between(dates, pows, color='cyan', label='House', alpha=0.4)
+
+            batpows = pows - self.battery_split
+            batischarge = batpows > 0
+
+        axes[3].fill_between(dates[batischarge], batpows[batischarge],
+                             color='magenta', label='BAT', alpha=0.8)
+            
         axes[3].legend(loc="upper left")
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[3].grid(which='minor', linestyle='--', linewidth=1, axis='x')
@@ -200,22 +177,38 @@ class Panel_Power(object):
         title +=  f' {direction:.0f}°/{slope:.0f}°'
         title +=  f' {area:.2f}m² {efficiency:.0f}%'
         title +=  f' {np.mean(pows):.0f}W^{np.max(pows):.0f}W'
-        title +=  f' ({np.mean(mdf*pows):.0f}W^{np.max(mdf*pows):.0f}W)'
         axes[3].set_title(title )
 
         axes[3].set_ylabel('Power [W]')
         axes[3].xaxis.set_major_formatter(dformatter)
 
+        if self.battery_split is not None:
+            powsums = np.cumsum(pows/60)
+            axes[4].fill_between(dates, powsums, color='cyan', label='House')
+
+        batsums = np.cumsum(batpows/60)
+        axes[4].fill_between(dates, batsums, color='black', label='Lost', alpha=0.6)
         
-        axes[4].plot(dates, np.cumsum(pows/60), color='blue', label='Blue')
-        axes[4].fill_between(dates, np.cumsum(mdf*pows/60), color='cyan', label='Meteo')
+        if self.battery_full is not None:
+            batisfull = batsums >= self.battery_full
+            batsums[batisfull] =  self.battery_full
+            axes[4].fill_between(dates, batsums, color='magenta', label='BAT', alpha=0.8)
+
+            axes[4].axhline(self.battery_full, color='black', linewidth=2, label='FULL')
+
+            batlost = batischarge & batisfull
+            if batlost.any():
+                axes[3].fill_between(dates[batlost], batpows[batlost],
+                                     color='black', label='LOST', alpha=0.6)
+                axes[3].legend(loc="upper left")
+
+            
         axes[4].legend(loc="upper left")
         axes[4].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[4].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[4].minorticks_on()
         title = f'Harvest Forecast'
         title += f' + {np.sum(pows)/60:.0f}Wh'
-        title += f' ({np.sum(mdf*pows)/60:.0f}Wh)'
         axes[4].set_title(title)
         axes[4].set_ylabel('Work [Wh]')
         axes[4].xaxis.set_major_formatter(dformatter)
@@ -260,13 +253,16 @@ def parse_arguments():
                         help = "Size of the panel area [m²]")
 
     parser.add_argument('--panel_efficiency', type = float, default = 18.5,
-                        help = "Nominal efficiency of the panel [%%] as per spec relative to 1000 [W/m²]")
+                        help = "Nominal efficiency of the panel [%%] relative to 1000 [W/m²] as per spec")
 
     parser.add_argument('--threshold', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
 
-    parser.add_argument('--charge_load', type = float, default = None,
-                        help = "Threshold when to charge battery [W]")
+    parser.add_argument('--battery_split', type = float, default = None,
+                        help = "Threshold when to charge battery in systems with storage [W]")
+
+    parser.add_argument('--battery_full', type = float, default = None,
+                        help = "Energy when a battery is considered full in systems with storage [Wh]")
     
     parser.add_argument('--plot', default = None,
                         help = "Directory for saving of the plots if needeed")
@@ -306,8 +302,12 @@ def main():
         logger.error('The efficiency of the panel is out of range  "{}".'.format(args.panel_efficiency))
         return 5
 
-    if args.charge_load is not None and args.charge_load < 0:
-        logger.error('The charge load is out of range  "{}".'.format(args.charge_load))
+    if args.battery_split is not None and args.battery_split < 0:
+        logger.error('The split power is out of range  "{}".'.format(args.battery_split))
+        return 6
+
+    if args.battery_full is not None and args.battery_full < 0:
+        logger.error('The full energy is out of range  "{}".'.format(args.battery_split))
         return 6
     
     if not args.plot is None and not os.path.isdir(args.plot):
@@ -322,15 +322,16 @@ def main():
     logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
     logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.panel_efficiency:.0f}%", Threshold: "{args.threshold:.0f}W"' )
 
-    pp = Panel_Power(args.lat, \
-                     args.lon, \
-                     args.panel_name, \
-                     args.panel_direction, \
-                     args.panel_slope, \
+    pp = Panel_Power(args.lat, 
+                     args.lon, 
+                     args.panel_name, 
+                     args.panel_direction, 
+                     args.panel_slope, 
                      args.panel_area,
-                     args.panel_efficiency / 100, \
+                     args.panel_efficiency / 100, 
                      args.threshold,
-                     args.charge_load,
+                     args.battery_split,
+                     args.battery_full,
                      args.forecast_day)
 
     errcode = pp.summarize()

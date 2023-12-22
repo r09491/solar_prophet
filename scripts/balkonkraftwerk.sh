@@ -27,6 +27,8 @@ mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/cs
 	    --panel_slope 30 \
 	    --panel_area 3.905 \
 	    --panel_efficiency 22 \
-	    --threshold 0 \
+	    --threshold 10 \
+	    --battery_split 50 \
+	    --battery_full 1600 \
 	    --plot $PANEL_ESTIMATE_STORE_DIR/plot \
 	    --csv $PANEL_ESTIMATE_STORE_DIR/csv $1

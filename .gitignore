@@ -6,6 +6,7 @@
 .vveplug
 a.sh
 b.sh
+01*.sh
 __pycache__
 build
 
