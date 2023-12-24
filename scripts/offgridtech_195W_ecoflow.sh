@@ -6,13 +6,19 @@
 # So acting below this threshold the battery would discharge. At least
 # 40W are required that charging operations makes sense.
 #
+# The split power 200W cannot be achieved with the Offgridtech 195W. The
+# Ecoflow does not allow.
+#
 # Note: The dealer's efficiency of 18% is to my experience exaggerated.
 #
 mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/csv &&\
     python3 ../panel_estimate.py --panel_name "Offgridtech 195W" \
 	    --panel_direction 170 \
-	    --panel_slope 45 \
-	    --efficiency 5 \
+	    --panel_slope 30 \
+	    --panel_efficiency 18 \
 	    --threshold 20 \
+	    --battery_split 200 \
+	    --battery_full 2060 \
+	    --battery_swap 1 \
 	    --plot $PANEL_ESTIMATE_STORE_DIR/plot \
 	    --csv $PANEL_ESTIMATE_STORE_DIR/csv $1
