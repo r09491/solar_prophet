@@ -6,7 +6,8 @@ Estimate the power of solar panels for a given day dependent on various factors
 ~/solar_panel $ ./panel_estimate.py -h
 usage: panel_estimate.py [-h] [--version] [--lat LAT] [--lon LON] [--panel_name PANEL_NAME]
                          [--panel_direction PANEL_DIRECTION] [--panel_slope PANEL_SLOPE] [--panel_area PANEL_AREA]
-                         [--efficiency EFFICIENCY] [--threshold THRESHOLD] [--plot PLOT] [--csv CSV]
+                         [--panel_efficiency PANEL_EFFICIENCY] [--threshold THRESHOLD] [--battery_split BATTERY_SPLIT]
+                         [--battery_full BATTERY_FULL] [--battery_swap BATTERY_SWAP] [--plot PLOT] [--csv CSV]
                          [forecast_day]
 
 Estimates the power of a solar panel
@@ -27,14 +28,19 @@ options:
                         Slope of the panel normale relative to surface [0 - 360]
   --panel_area PANEL_AREA
                         Size of the panel area [m²]
-  --efficiency EFFICIENCY
-                        Efficiency of the panel [%]. Can be used for other degradations!
+  --panel_efficiency PANEL_EFFICIENCY
+                        Nominal efficiency of the panel [%]. Can be reduced for degradations like scattered sky etc
   --threshold THRESHOLD
-                        Threshold when battery accepts input power [W]
+                        Threshold when system accepts input power [W]
+  --battery_split BATTERY_SPLIT
+                        Threshold when to charge battery in systems with storage [W]
+  --battery_full BATTERY_FULL
+                        Energy when a battery is considered full in systems with storage [Wh]
+  --battery_swap BATTERY_SWAP
+                        If False the user power is limited to the provided value. The battery consumes the rest. If False the
+                        user power is limited to the provided value. The battery uses the rest.
   --plot PLOT           Directory for saving of the plots if needeed
   --csv CSV             Directory for saving of the CSV file if needed
-
-Estimates the power of a solar panel dependent on different factors
 ~/solar_panel $
 
 ```

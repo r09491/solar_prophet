@@ -56,14 +56,14 @@ class Panel_Power(object):
   
         pows = np.dot(sunvecs, get_vector(direction, slope))
         pows *= sunrads*area*efficiency
-        pows[pows[:] < threshold] = 0
+        pows[pows < threshold] = 0
 
         data = {'altitude' : sunalts, 'azimuth':sunazis,
                 'radiation' : sunrads, 'power' : pows}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
         self.battery_split = 0.0 if battery_split is None else battery_split 
-        self.battery_full = pows.sum() if battery_full is None else battery_full
+        self.battery_full = pows.sum()/60 if battery_full is None else battery_full
         self.battery_swap = battery_swap
         
         self.tzinfo = tzinfo
@@ -205,7 +205,7 @@ class Panel_Power(object):
         axes[3].fill_between(dates, house_w,
                              color='cyan', label='HOUSE', alpha = 0.9)        
 
-        axes[3].axhline(bsplit, color='black', linewidth=2, label='SPLIT')
+        axes[3].axhline(bsplit, color='cyan', linewidth=2, label='SPLIT')
     
         axes[3].legend(loc="upper left")    
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
@@ -228,7 +228,8 @@ class Panel_Power(object):
         axes[4].fill_between(dates, house_wh,
                              color='cyan', label='HOUSE', alpha = 0.9)        
 
-        axes[4].axhline(bfull+house_wh[-1], color='black', linewidth=2, label='FULL')
+        if bats_wh[-1] < bfull:
+            axes[4].axhline(bfull+house_wh[-1], color='magenta', linewidth=2, label='FULL')
 
         axes[4].legend(loc="upper left")
         axes[4].grid(which='major', linestyle='-', linewidth=2, axis='both')
@@ -284,7 +285,7 @@ def parse_arguments():
                         help = "Size of the panel area [m²]")
 
     parser.add_argument('--panel_efficiency', type = float, default = 18.5,
-                        help = "Nominal efficiency of the panel [%%]. There is a best value relative to 1000 [W/m²] in the data sheets. This can propably not ne achieved. Can be reduced for degradations like scattered sky etc")
+                        help = "Nominal efficiency of the panel [%%]. Can be reduced for degradations like scattered sky etc")
 
     parser.add_argument('--threshold', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
@@ -296,7 +297,7 @@ def parse_arguments():
                         help = "Energy when a battery is considered full in systems with storage [Wh]")
 
     parser.add_argument('--battery_swap', type = int, default = 0,
-                        help = "If False the user power is limited to the provided value. The battery consumes the rest. This is the case for the Anker Solix 1600.  If True it is the other way round. This is the case for the Ecoflow Delta 2000")
+                        help = "If False the user power is limited to the provided value. The battery consumes the rest. If False the user power is limited to the provided value. The battery uses the rest.")
     
     parser.add_argument('--plot', default = None,
                         help = "Directory for saving of the plots if needeed")
