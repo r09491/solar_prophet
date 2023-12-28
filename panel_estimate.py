@@ -25,6 +25,12 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(os.path.basename(sys.argv[0]))
 
+""" DWD Average Direct Sun Radiation per month """
+METEO = (  21000 / 31 * 60,  41000 / 28 * 60, 110000 / 31 * 60,
+          121000 / 30 * 60, 159000 / 31 * 60, 162000 / 30 * 60,
+          161000 / 31 * 60, 140000 / 31 * 60,  92000 / 30 * 60,
+           56000 / 31 * 60,  22000 / 30 * 60,  19000 / 31 * 60 )
+
 
 def get_vector(azimuth, altitude):
     azi, alt = np.radians(azimuth), np.radians(altitude) 
@@ -53,13 +59,20 @@ class Panel_Power(object):
         sunazis = np.array(azis)[is_sun]
         sunrads = np.array(rads)[is_sun]
         sunvecs = np.array(vecs)[is_sun]
-  
-        pows = np.dot(sunvecs, get_vector(direction, slope))
-        pows *= sunrads*area*efficiency
+
+        # Consider the weather conditions in the month
+        meteorads = sunrads * (METEO[day.month - 1] / sunrads.sum())
+
+        # Consider panel features
+        bestpows = meteorads*area*efficiency
+        bestpows[bestpows < threshold] = 0
+
+        # Consider attitude
+        pows = bestpows * np.dot(sunvecs, get_vector(direction, slope))
         pows[pows < threshold] = 0
 
-        data = {'altitude' : sunalts, 'azimuth':sunazis,
-                'radiation' : sunrads, 'power' : pows}
+        data = {'altitude':sunalts, 'azimuth':sunazis, 'sunrads':sunrads,
+                'meteorads':meteorads, 'bestpows':bestpows, 'power':pows}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
         self.battery_split = 0.0 if battery_split is None else battery_split 
@@ -74,7 +87,9 @@ class Panel_Power(object):
         dates = self.df.index
         azis = self.df.azimuth
         alts = self.df.altitude
-        rads = self.df.radiation
+        rads = self.df.sunrads
+        meteos = self.df.meteorads
+        bests = self.df.bestpows
         pows = self.df.power
         name = self.name
 
@@ -92,19 +107,28 @@ class Panel_Power(object):
         text += f' @ "{maxdate.strftime("%H:%M %Z")}"'
         logger.info(text)
 
-        text = f'Sun # Rise:"{dates[0].strftime("%H:%M %Z")}",'
+        text = f'Sun #'
+        logger.info(text)
+        text = f' Rise:"{dates[0].strftime("%H:%M %Z")}",'
         text += f' Set:"{dates[-1].strftime("%H:%M %Z")}"'
         logger.info(text)
-
         text = f' Mean:"{np.mean(rads):.0f}W/m²",'
         text += f' Max:"{np.max(rads):.0f}W/m²",'
-        text += f' Total:"{np.sum(rads):.0f}Wh/m²"'
+        text += f' Total:"{np.sum(rads/60):.0f}Wh/m²"'
         logger.info(text)
 
-        text = f'Harvest # Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
-        text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}"'
+        text = f'Meteo #'
+        logger.info(text)
+        text = f' Mean:"{np.mean(meteos):.0f}W/m²",'
+        text += f' Max:"{np.max(meteos):.0f}W/m²",'
+        text += f' Total:"{np.sum(meteos/60):.0f}Wh/m²"'
         logger.info(text)
         
+        text = f'Harvest #'
+        logger.info(text)
+        text = f' Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
+        text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}"'
+        logger.info(text)
         text = f' Mean:"{np.mean(pows):.0f}W",'
         text += f' Max:"{np.max(pows):.0f}W",'
         text += f' Total:"{np.sum(pows/60):.0f}Wh",'
@@ -121,7 +145,9 @@ class Panel_Power(object):
         dates = self.df.index
         azis = self.df.azimuth
         alts = self.df.altitude
-        rads = self.df.radiation
+        rads = self.df.sunrads
+        meteos = self.df.meteorads
+        bests = self.df.bestpows
         pows = self.df.power
 
         pows_mean = pows.mean()
@@ -185,13 +211,16 @@ class Panel_Power(object):
         axes[1].xaxis.set_major_formatter(dformatter)
 
         
-        axes[2].plot(dates, rads, color='red')
+        axes[2].plot(dates, rads, color='red', label='SUN')
+        axes[2].plot(dates, meteos, color='blue', label='METEO')
+        axes[2].legend(loc="upper left")    
         axes[2].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[2].grid(which='minor', linestyle='--', linewidth=1, axis='x')
         axes[2].minorticks_on()
 
-        title = f'Sun Radiation @ {lat:.2f}/{lon:.2f}, '
-        title +=  f' {np.mean(rads):.0f}W/m²^{np.max(rads):.0f}W/m²'
+        title = f'Direct Radiation '
+        title +=  f' {np.mean(rads):.0f}W/m²^{np.max(rads):.0f}W/m² |'
+        title +=  f' {np.mean(meteos):.0f}W/m²^{np.max(meteos):.0f}W/m²'
         axes[2].set_title(title)
 
         axes[2].set_ylabel('Radiation [W/m²]')
@@ -206,6 +235,8 @@ class Panel_Power(object):
                              color='cyan', label='HOUSE', alpha = 0.9)        
 
         axes[3].axhline(bsplit, color='cyan', linewidth=2, label='SPLIT')
+
+        axes[3].plot(dates, bests, color='black', linestyle='--', label = "BEST")
     
         axes[3].legend(loc="upper left")    
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
@@ -214,8 +245,8 @@ class Panel_Power(object):
 
         title = f'Power Forecast #'
         title +=  f' {direction:.0f}°/{slope:.0f}°'
-        title +=  f' {area:.2f}m² {efficiency:.0f}%'
-        title +=  f' {pows_mean:.0f}W^{pows_max:.0f}W'
+        title +=  f' | {area:.2f}m² | {efficiency:.0f}%'
+        title +=  f' > {pows_mean:.0f}W^{pows_max:.0f}W'
         axes[3].set_title(title )
         axes[3].set_ylabel('Power [W]')
         axes[3].xaxis.set_major_formatter(dformatter)
@@ -230,6 +261,8 @@ class Panel_Power(object):
 
         if bats_wh[-1] < bfull:
             axes[4].axhline(bfull+house_wh[-1], color='magenta', linewidth=2, label='FULL')
+
+        axes[4].plot(dates, bests.cumsum()/60, color='black', linestyle='--', label = "BEST")
 
         axes[4].legend(loc="upper left")
         axes[4].grid(which='major', linestyle='-', linewidth=2, axis='both')
