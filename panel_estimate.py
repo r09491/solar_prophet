@@ -21,6 +21,9 @@ import matplotlib.dates as mdates
 from datetime import datetime 
 from pysolar import solar, radiation
 
+import warnings
+warnings.simplefilter("ignore")
+
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(os.path.basename(sys.argv[0]))
@@ -71,7 +74,7 @@ class Panel_Power(object):
         pows = bestpows * np.dot(sunvecs, get_vector(direction, slope))
         pows[pows < threshold] = 0
 
-        data = {'altitude':sunalts, 'azimuth':sunazis, 'sunrads':sunrads,
+        data = {'azimuth':sunazis, 'altitude':sunalts,'sunrads':sunrads,
                 'meteorads':meteorads, 'bestpows':bestpows, 'power':pows}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
@@ -107,29 +110,25 @@ class Panel_Power(object):
         text += f' @ "{maxdate.strftime("%H:%M %Z")}"'
         logger.info(text)
 
-        text = f'Sun #'
+        text = f'Sun # Rise:"{dates[0].strftime("%H:%M %Z")}",'
+        text += f' Set:"{dates[-1].strftime("%H:%M %Z")}",'
+        text += f' "{(dates[-1] - dates[0]).total_seconds()/3600:.1f}h"'
         logger.info(text)
-        text = f' Rise:"{dates[0].strftime("%H:%M %Z")}",'
-        text += f' Set:"{dates[-1].strftime("%H:%M %Z")}"'
-        logger.info(text)
-        text = f' Mean:"{np.mean(rads):.0f}W/m²",'
+        text = f'Sun # Mean:"{np.mean(rads):.0f}W/m²",'
         text += f' Max:"{np.max(rads):.0f}W/m²",'
         text += f' Total:"{np.sum(rads/60):.0f}Wh/m²"'
         logger.info(text)
 
-        text = f'Meteo #'
-        logger.info(text)
-        text = f' Mean:"{np.mean(meteos):.0f}W/m²",'
+        text = f'Meteo # Mean:"{np.mean(meteos):.0f}W/m²",'
         text += f' Max:"{np.max(meteos):.0f}W/m²",'
         text += f' Total:"{np.sum(meteos/60):.0f}Wh/m²"'
         logger.info(text)
         
-        text = f'Harvest #'
+        text = f'Harvest # Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
+        text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}",'
+        text += f' "{(dates[pows>0][-1] - dates[pows>0][0]).total_seconds()/3600:.1f}h"'
         logger.info(text)
-        text = f' Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
-        text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}"'
-        logger.info(text)
-        text = f' Mean:"{np.mean(pows):.0f}W",'
+        text = f'Harvest # Mean:"{np.mean(pows):.0f}W",'
         text += f' Max:"{np.max(pows):.0f}W",'
         text += f' Total:"{np.sum(pows/60):.0f}Wh",'
         text += f' "{np.sum(pows/60/12.5):.0f}Ah"'
