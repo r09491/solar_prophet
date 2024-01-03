@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 __doc__="""
-Estimates the power of a solar panel dependent on different factors.
+Estimates the power of a solar panel dependent on different factors
 """
 __version__ = "0.0.0"
 __author__ = "sepp.heid@t-online.de"
