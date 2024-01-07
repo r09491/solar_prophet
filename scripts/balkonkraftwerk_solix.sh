@@ -16,19 +16,15 @@
 # of 12 @ slope 45 is required
 #
 
-# Efficiency considering weather (Deutscher Wetterdienst)
-# Jan:15, Feb:25, Mar:60, Apr:65, May:78, Jun:79, 
-# Jul:80, Aug:74,Sep:49, Oct:36, Nov:15, Dez:15
-#
-
 mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/csv &&\
     python3 ../panel_estimate.py --panel_name "Balkon KW Solakon SK-011113" \
-	    --panel_direction 170 \
-	    --panel_slope 30 \
+	    --panel_direction 180 \
+	    --panel_slope 37 \
 	    --panel_area 3.905 \
 	    --panel_efficiency 22 \
 	    --threshold 10 \
 	    --battery_split 50 \
 	    --battery_full 1600 \
+	    --battery_swap 0 \
 	    --plot $PANEL_ESTIMATE_STORE_DIR/plot \
 	    --csv $PANEL_ESTIMATE_STORE_DIR/csv $1

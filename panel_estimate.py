@@ -2,8 +2,9 @@
 
 __doc__="""
 Estimates the power of a solar panel dependent on different factors
+like location and pannel attitude
 """
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 __author__ = "sepp.heid@t-online.de"
 
 
@@ -258,7 +259,7 @@ class Panel_Power(object):
         axes[4].fill_between(dates, house_wh,
                              color='cyan', label='HOUSE', alpha = 0.9)        
 
-        if bats_wh[-1] < bfull:
+        if 0 < bats_wh[-1] < bfull:
             axes[4].axhline(bfull+house_wh[-1], color='magenta', linewidth=2, label='FULL')
 
         axes[4].plot(dates, bests.cumsum()/60, color='black', linestyle='--', label = "BEST")
