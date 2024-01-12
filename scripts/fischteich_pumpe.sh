@@ -6,6 +6,6 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR && \
 	    --panel_slope 45 \
 	    --panel_area 0.1568 \
 	    --efficiency 14 \
-	    --threshold 0 \
-	    --plot $SOLAR_PROPHET_STORE_DIR/plot $1
+	    --threshold 0 $1
+
 

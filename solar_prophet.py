@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
@@ -138,7 +138,7 @@ class Panel_Power(object):
         return 0
 
     
-    def save_plot(self, name, lat, lon, direction, slope, area, efficiency):
+    def show_plot(self, lat, lon, direction, slope, area, efficiency):
         dformatter = mdates.DateFormatter('%H:%M')
         dformatter.set_tzinfo(self.tzinfo)
 
@@ -280,9 +280,9 @@ class Panel_Power(object):
 
         fig.tight_layout(pad=2.0)
 
-        fig.savefig(name)
-        plt.close(fig) 
-        #plt.show()
+        #fig.savefig(name)
+        #plt.close(fig) 
+        plt.show()
 
 
     def save_csv(self, name):
@@ -317,8 +317,8 @@ def parse_arguments():
     parser.add_argument('--panel_area', type = float, default = 0.39*0.78*3,
                         help = "Size of the panel area [m²]")
 
-    parser.add_argument('--panel_efficiency', type = float, default = 18.5,
-                        help = "Nominal efficiency of the panel [%%]. Can be reduced for degradations like scattered sky etc")
+    parser.add_argument('--panel_efficiency', type = float, default = 100.0,
+                        help = "Nominal efficiency of the panel [%%]. 100% for the standard weather conditions, eg  180% if blue sky, 20% if foggy")
 
     parser.add_argument('--threshold', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
@@ -330,10 +330,10 @@ def parse_arguments():
                         help = "Energy when a battery is considered full in systems with storage [Wh]")
 
     parser.add_argument('--battery_swap', type = int, default = 0,
-                        help = "If False the user power is limited to the provided value. The battery consumes the rest. If False the user power is limited to the provided value. The battery uses the rest.")
+                        help = "If False the user power is limited to the provided value. The battery consumes the rest. If True the user power is limited to the provided value. The battery uses the rest.")
     
-    parser.add_argument('--plot', default = None,
-                        help = "Directory for saving of the plots if needeed")
+    parser.add_argument('--plot', type = bool, default = True,
+                        help = "Controls if results are to be shown")
 
     parser.add_argument('--csv', default = None,
                         help = "Directory for saving of the CSV file if needed")
@@ -377,10 +377,6 @@ def main():
     if args.battery_full is not None and args.battery_full < 0:
         logger.error('The full energy is out of range  "{}".'.format(args.battery_split))
         return 6
-    
-    if not args.plot is None and not os.path.isdir(args.plot):
-        logger.error('The directory to save the plots does not exist "{}".'.format(args.plot))
-        return 7
 
     if not args.csv is None and not os.path.isdir(args.csv):
         logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
@@ -408,18 +404,15 @@ def main():
         logger.error(f'The cobination of provided parameters does not qualify for harvesting')
         return 7
 
-    if not args.plot is None:
-        save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%Y-%m-%d") + '.png'
-        pp.save_plot(os.path.join(args.plot, save_name), \
-                     args.lat, args.lon, args.panel_direction, \
-                     args.panel_slope, args.panel_area, args.panel_efficiency)
-        logger.info(f'Plot saved to  "{os.path.join(args.plot, save_name)}"' )
-
     if not args.csv is None:            
         save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%Y-%m-%d") + '.csv'
         pp.save_csv(os.path.join(args.csv, save_name))
         logger.info(f'CSV saved to  "{os.path.join(args.csv, save_name)}"' )
         
+    if args.plot:
+        pp.show_plot(args.lat, args.lon, args.panel_direction,
+                     args.panel_slope, args.panel_area, args.panel_efficiency)
+
     return 0
 
 if __name__ == '__main__':

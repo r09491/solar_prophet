@@ -21,10 +21,8 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --panel_direction 180 \
 	    --panel_slope 37 \
 	    --panel_area 3.905 \
-	    --panel_efficiency 22 \
+	    --panel_efficiency 100 \
 	    --threshold 10 \
 	    --battery_split 50 \
 	    --battery_full 1600 \
-	    --battery_swap 0 \
-	    --plot $SOLAR_PROPHET_STORE_DIR/plot \
-	    --csv $SOLAR_PROPHET_STORE_DIR/csv $1
+	    --battery_swap 0 $1

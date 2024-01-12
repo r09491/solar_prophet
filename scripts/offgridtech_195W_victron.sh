@@ -4,8 +4,7 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
     python3 ../solar_prophet.py --panel_name "Offgridtech 195W" \
 	    --panel_direction 170 \
 	    --panel_slope 30 \
-	    --panel_efficiency 2 \
+	    --panel_efficiency 100 \
 	    --threshold 0 \
 	    --battery_full 75 \
-	    --plot $SOLAR_PROPHET_STORE_DIR/plot \
 	    --csv $SOLAR_PROPHET_STORE_DIR/csv $1

@@ -20,5 +20,4 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --battery_split 200 \
 	    --battery_full 2060 \
 	    --battery_swap 1 \
-	    --plot $SOLAR_PROPHET_STORE_DIR/plot \
 	    --csv $SOLAR_PROPHET_STORE_DIR/csv $1
