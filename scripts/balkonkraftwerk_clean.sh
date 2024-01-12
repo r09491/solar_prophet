@@ -21,13 +21,13 @@
 # Jul:80, Aug:74,Sep:49, Oct:36, Nov:15, Dez:15
 #
 
-mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/csv &&\
-    python3 ../panel_estimate.py --panel_name "Balkon KW Solakon SK-011113" \
+mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv &&\
+    python3 ../solar_prophet.py --panel_name "Balkon KW Solakon SK-011113" \
 	    --panel_direction 180 \
 	    --panel_slope 37 \
 	    --panel_area 3.905 \
 	    --panel_efficiency 15 \
 	    --threshold 10 \
 	    --battery_swap 1 \
-	    --plot $PANEL_ESTIMATE_STORE_DIR/plot \
-	    --csv $PANEL_ESTIMATE_STORE_DIR/csv $1
+	    --plot $SOLAR_PROPHET_STORE_DIR/plot \
+	    --csv $SOLAR_PROPHET_STORE_DIR/csv $1

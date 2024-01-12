@@ -1,10 +1,10 @@
 Estimate the power of solar panels for a given day dependent on various factors
 
-'panel_estimate.py' is the only script provided. It is dependent on 'pysolar', 'pandas' and 'matplotlib' to be installed somehow.
+'solar_prophet.py' is the only script provided. It is dependent on 'pysolar', 'pandas' and 'matplotlib' to be installed somehow.
 
 ```
-~/solar_panel $ ./panel_estimate.py -h
-usage: panel_estimate.py [-h] [--version] [--lat LAT] [--lon LON] [--panel_name PANEL_NAME]
+~/solar_panel $ ./solar_prophet.py -h
+usage: solar_prophet.py [-h] [--version] [--lat LAT] [--lon LON] [--panel_name PANEL_NAME]
                          [--panel_direction PANEL_DIRECTION] [--panel_slope PANEL_SLOPE] [--panel_area PANEL_AREA]
                          [--panel_efficiency PANEL_EFFICIENCY] [--threshold THRESHOLD] [--battery_split BATTERY_SPLIT]
                          [--battery_full BATTERY_FULL] [--battery_swap BATTERY_SWAP] [--plot PLOT] [--csv CSV]
@@ -45,22 +45,22 @@ options:
 
 ```
 
-Under scripts there are a few examples. To run define PANEL_ESTIMATE_STORE_DIR first.
+Under scripts there are a few examples. To run define SOLAR_PROPHET_STORE_DIR first.
 
 ```
 ~/solar_panel/scripts $ . offgridtech_195W_victron.sh
-INFO:panel_estimate.py:Estimating the harvest of "Offgridtech 195W" on "2023-12-07"
-INFO:panel_estimate.py: Lat/Lon:"49.05/11.78", Dir/Slope:"170/25"
-INFO:panel_estimate.py: Area: "0.91m²", Efficiency: "1%", Threshold: "0W"
-INFO:panel_estimate.py:Sun Rise:"07:55 CET", Set:"16:13 CET"
-INFO:panel_estimate.py: Mean:"543W/m²", Max:"777W/m²", Total:"270988Wh/m²"
-INFO:panel_estimate.py: Azimuth/Altitude (Max): "180/18" @ "12:04 CET"
-INFO:panel_estimate.py:Harvest Start:"07:55 CET", End:"16:13 CET"
-INFO:panel_estimate.py: Mean:"4W", Max:"7W", Total:"36Wh", "3Ah"
-INFO:panel_estimate.py:Plot saved to  "/data/data/com.termux/files/home/storage/panel_estimate/plot/Offgridtech_195W_2023-12-07.png"
-INFO:panel_estimate.py:CSV saved to  "/data/data/com.termux/files/home/storage/panel_estimate/csv/Offgridtech_195W_2023-12-07.csv"
+INFO:solar_prophet.py:Estimating the harvest of "Offgridtech 195W" on "2023-12-07"
+INFO:solar_prophet.py: Lat/Lon:"49.05/11.78", Dir/Slope:"170/25"
+INFO:solar_prophet.py: Area: "0.91m²", Efficiency: "1%", Threshold: "0W"
+INFO:solar_prophet.py:Sun Rise:"07:55 CET", Set:"16:13 CET"
+INFO:solar_prophet.py: Mean:"543W/m²", Max:"777W/m²", Total:"270988Wh/m²"
+INFO:solar_prophet.py: Azimuth/Altitude (Max): "180/18" @ "12:04 CET"
+INFO:solar_prophet.py:Harvest Start:"07:55 CET", End:"16:13 CET"
+INFO:solar_prophet.py: Mean:"4W", Max:"7W", Total:"36Wh", "3Ah"
+INFO:solar_prophet.py:Plot saved to  "/data/data/com.termux/files/home/storage/solar_prophet/plot/Offgridtech_195W_2023-12-07.png"
+INFO:solar_prophet.py:CSV saved to  "/data/data/com.termux/files/home/storage/solar_prophet/csv/Offgridtech_195W_2023-12-07.csv"
 ~/solar_panel/scripts $
-~/solar_panel/scripts $ feh  "/data/data/com.termux/files/home/storage/panel_estimate/plot/Offgridtech_195W_2023-12-07.png"
+~/solar_panel/scripts $ feh  "/data/data/com.termux/files/home/storage/solar_prophet/plot/Offgridtech_195W_2023-12-07.png"
 ~/solar_panel/scripts $
 ```
 

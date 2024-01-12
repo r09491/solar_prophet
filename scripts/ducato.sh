@@ -2,11 +2,11 @@
 
 # To assess the flat installation of the panel and car headings
 
-mkdir -p $PANEL_ESTIMATE_STORE_DIR && \
-    python3 ../panel_estimate.py \
+mkdir -p $SOLAR_PROPHET_STORE_DIR && \
+    python3 ../solar_prophet.py \
 	    --panel_name "Ducato" \
 	    --panel_slope 90 \
 	    --panel_area 0.6 \
 	    --efficiency 16 \
             --threshold 0 \
-	    --plot $PANEL_ESTIMATE_STORE_DIR $1
+	    --plot $SOLAR_PROPHET_STORE_DIR $1

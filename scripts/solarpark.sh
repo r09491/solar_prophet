@@ -8,12 +8,12 @@
 #  Blauer Sommertag: 18 ? TBD
 #
 
-mkdir -p $PANEL_ESTIMATE_STORE_DIR && \
-    python3 ../panel_estimate.py \
+mkdir -p $SOLAR_PROPHET_STORE_DIR && \
+    python3 ../solar_prophet.py \
 	    --panel_name "Solarpark" \
 	    --panel_direction 180 \
 	    --panel_slope 45 \
 	    --panel_area 480 \
 	    --efficiency 2 \
             --threshold 0 \
-	    --plot $PANEL_ESTIMATE_STORE_DIR $1
+	    --plot $SOLAR_PROPHET_STORE_DIR $1

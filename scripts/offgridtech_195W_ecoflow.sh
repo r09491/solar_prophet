@@ -11,8 +11,8 @@
 #
 # Note: The dealer's efficiency of 18% is to my experience exaggerated.
 #
-mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/csv &&\
-    python3 ../panel_estimate.py --panel_name "Offgridtech 195W" \
+mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv &&\
+    python3 ../solar_prophet.py --panel_name "Offgridtech 195W" \
 	    --panel_direction 170 \
 	    --panel_slope 30 \
 	    --panel_efficiency 18 \
@@ -20,5 +20,5 @@ mkdir -p $PANEL_ESTIMATE_STORE_DIR/plot && mkdir -p $PANEL_ESTIMATE_STORE_DIR/cs
 	    --battery_split 200 \
 	    --battery_full 2060 \
 	    --battery_swap 1 \
-	    --plot $PANEL_ESTIMATE_STORE_DIR/plot \
-	    --csv $PANEL_ESTIMATE_STORE_DIR/csv $1
+	    --plot $SOLAR_PROPHET_STORE_DIR/plot \
+	    --csv $SOLAR_PROPHET_STORE_DIR/csv $1
