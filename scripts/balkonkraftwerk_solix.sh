@@ -25,4 +25,5 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --threshold 10 \
 	    --battery_split 50 \
 	    --battery_full 1600 \
-	    --battery_swap 0 $1
+	    --battery_swap 0 \
+	    --plot $1

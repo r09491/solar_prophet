@@ -332,7 +332,7 @@ def parse_arguments():
     parser.add_argument('--battery_swap', type = int, default = 0,
                         help = "If False the user power is limited to the provided value. The battery consumes the rest. If True the user power is limited to the provided value. The battery uses the rest.")
     
-    parser.add_argument('--plot', type = bool, default = True,
+    parser.add_argument('--plot', action = 'store_true',
                         help = "Controls if results are to be shown")
 
     parser.add_argument('--csv', default = None,
@@ -343,7 +343,9 @@ def parse_arguments():
                         type=lambda d: datetime.strptime(d, '%Y-%m-%d').date(),
                         default = datetime.now().strftime('%Y-%m-%d'), nargs = '?',
                         help = 'Day for forecast')
-        
+
+    parser.set_defaults(plot = False)
+    
     return parser.parse_args()
 
 
