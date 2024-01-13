@@ -46,7 +46,7 @@ def get_vector(azimuth, altitude):
 
 class Panel_Power(object):
 
-    def __init__(self, lat, lon, name, direction, slope, area, efficiency, threshold,
+    def __init__(self, lat, lon, name, direction, slope, area, efficiency, start_barrier,
                  battery_split, battery_full, battery_first, day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
@@ -69,11 +69,11 @@ class Panel_Power(object):
 
         # Consider panel features
         bestpows = meteorads*area*efficiency
-        bestpows[bestpows < threshold] = 0
+        bestpows[bestpows < start_barrier] = 0
 
         # Consider attitude
         pows = bestpows * np.dot(sunvecs, get_vector(direction, slope))
-        pows[pows < threshold] = 0
+        pows[pows < start_barrier] = 0
 
         data = {'azimuth':sunazis, 'altitude':sunalts,'sunrads':sunrads,
                 'meteorads':meteorads, 'bestpows':bestpows, 'power':pows}
@@ -318,7 +318,7 @@ def parse_arguments():
     parser.add_argument('--panel_efficiency', type = float, default = 100.0,
                         help = "Nominal efficiency of the panel [%%]. 100% for the standard weather conditions, eg  180% if blue sky, 20% if foggy")
 
-    parser.add_argument('--threshold', type = float, default = 20.0,
+    parser.add_argument('--start_barrier', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
 
     parser.add_argument('--battery_split', type = float, default = None,
@@ -388,7 +388,7 @@ def main():
 
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
     logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
-    logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.panel_efficiency:.0f}%", Threshold: "{args.threshold:.0f}W"' )
+    logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.panel_efficiency:.0f}%", Start_Barrier: "{args.start_barrier:.0f}W"' )
 
     pp = Panel_Power(args.lat, 
                      args.lon, 
@@ -397,7 +397,7 @@ def main():
                      args.panel_slope, 
                      args.panel_area,
                      args.panel_efficiency / 100, 
-                     args.threshold,
+                     args.start_barrier,
                      args.battery_split,
                      args.battery_full,
                      args.battery_first,

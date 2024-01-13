@@ -15,8 +15,8 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
     python3 ../solar_prophet.py --panel_name "Offgridtech 195W" \
 	    --panel_direction 170 \
 	    --panel_slope 30 \
-	    --panel_efficiency 100 \
-	    --threshold 20 \
+	    --panel_efficiency 50 \
+	    --start_barrier 20 \
 	    --battery_split 200 \
 	    --battery_full 2060 \
 	    --battery_first \
