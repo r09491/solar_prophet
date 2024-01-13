@@ -340,53 +340,53 @@ def parse_arguments():
     parser.add_argument('--version', action = 'version', version = __version__)
 
     parser.add_argument('--lat', type = float, default = 49.04885,
-                        help = "Latitude of the panel position")
+                        help = 'The latitude of the panel position [0 - 360]')
 
     parser.add_argument('--lon', type = float, default = 11.78333,
-                        help = "Longitude of the panel position")
+                        help = 'The longitude of the panel position [0 - 360]')
     
     parser.add_argument('--panel_name', default = 'Offgridtech 195W-FSP-2',
-                        help = "Name of the panel")
+                        help = 'The name of the panel')
 
     parser.add_argument('--panel_direction', type = float, default = 180.0,
-                        help = "Direction of the panel normale relative to north [0 - 360]")
+                        help = 'The direction of the panel normale relative to north [0 - 360]')
     
     parser.add_argument('--panel_slope', type = float, default = 45.0,
-                        help = "Slope of the panel normale relative to surface [0 - 360]")
+                        help = 'The slope of the panel normale relative to surface [0 - 360]')
 
     parser.add_argument('--panel_area', type = float, default = 0.39*0.78*3,
-                        help = "Size of the panel area [m²]")
+                        help = 'The size of the panel area [m²]')
 
     parser.add_argument('--panel_efficiency', type = float, default = 100.0,
-                        help = "Nominal efficiency of the panel [%%]. 100% for the standard weather conditions, eg  180% if blue sky, 20% if foggy")
+                        help = 'The efficiency of the panel [%%]. Blue Sky ~ 180. Mist ~ 20')
 
     parser.add_argument('--start_barrier', type = float, default = 20.0,
-                        help = "Threshold when system accepts input power [W]")
+                        help = 'The threshold when the system accepts the input [W]')
 
     parser.add_argument('--inverter_limit', type = float, default = None,
-                        help = "The maximum power limit of the inverter [W]")
+                        help = 'The maximum power limit of the inverter [W]')
     
     parser.add_argument('--battery_split', type = float, default = None,
-                        help = "Threshold when to charge battery in systems with storage [W]")
+                        help = 'The threshold when to charge the battery in systems with storage [W]')
 
     parser.add_argument('--battery_full', type = float, default = None,
-                        help = "Energy when a battery is considered full in systems with storage [Wh]")
+                        help = 'The energy when a battery is considered full in systems with storage [Wh]')
 
     parser.add_argument('--battery_first', action = 'store_true', dest='battery_first',
-                        help = "Serve battery as first! Serve house as second!")
-    
-    parser.add_argument('--plot', action = 'store_true',
-                        help = "Plot the result")
+                        help = 'Serve the battery first! Serve the house second!')
     
     parser.add_argument('--csv', default = None,
-                        help = "Directory for saving of the CSV file if needed")
+                        help = 'The directory for saving of the CSV file if needed')
 
+    parser.add_argument('--plot', action = 'store_true',
+                        help = 'Display the results in a plot')
+    
     parser.add_argument('forecast_day',
                         type=ymd2date, default = datetime.now().strftime('%Y-%m-%d'), nargs = '?',
                         help = 'Day for forecast')
 
     parser.set_defaults(plot = False, battery_first = False)
-    
+
     return parser.parse_args()
 
 
@@ -394,56 +394,60 @@ def main():
     args = parse_arguments()
         
     if args.lat < -90 or args.lat > 90:
-        logger.error('The latitude of the panel position is out of range  "{}".'.format(args.lat))
+        logger.error(f'The latitude of the panel position is out of range  "{args.lat}"')
         return 1
 
     if args.lon < -180 or args.lat > 180:
-        logger.error('The longitude of the panel position is out of range  "{}".'.format(args.lon))
+        logger.error(f'The longitude of the panel position is out of range  "{args.lon}"')
         return 2
 
     if args.panel_direction < 0 or args.panel_direction > 360:
-        logger.error('The direction of the panel is out of range  "{}".'.format(args.panel_direction))
+        logger.error(f'The direction of the panel is out of range  "{args.panel_direction}"')
         return 3
 
     if args.panel_slope < 0 or args.panel_slope > 360:
-        logger.error('The slope of the panel is out of range  "{}".'.format(args.panel_slope))
+        logger.error(f'The slope of the panel is out of range  "{args.panel_slope}"')
         return 4
 
     if args.panel_efficiency < 0 or args.panel_efficiency > 200:
-        logger.error('The efficiency of the panel is out of range  "{}".'.format(args.panel_efficiency))
+        logger.error(f'The efficiency of the panel is out of range  "{args.panel_efficiency}"')
         return 5
 
     if args.start_barrier < 0:
-        logger.error('The start barrier is out of range  "{}".'.format(args.start_barrier))
+        logger.error(f'The start barrier is out of range  "{args.start_barrier}"')
         return 6
 
     if args.inverter_limit is not None and (args.inverter_limit < 0 or args.inverter_limit > 800):
-        logger.error('The inverter limit is out of range  "{}".'.format(args.inverter_limit))
+        logger.error(f'The inverter limit is out of range  "{args.inverter_limit}"')
         return 7
     
     if args.battery_split is not None and args.battery_split < 0:
-        logger.error('The split power is out of range  "{}".'.format(args.battery_split))
+        logger.error(f'The split power is out of range  "{args.battery_split}"')
         return 8
 
     if args.battery_full is not None and args.battery_full < 0:
-        logger.error('The full energy is out of range  "{}".'.format(args.battery_full))
+        logger.error(f'The full energy is out of range  "{args.battery_full}"')
         return 9
 
     if args.battery_first and args.battery_split is None and args.battery_full is None:
-        logger.error('Battery parameters are illegal.')
+        logger.error(f'The combination of battery parameters is illegal.')
         return 10
         
     if not args.csv is None and not os.path.isdir(args.csv):
-        logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
+        logger.error(f'The directory to save the CSV does not exist "{args.csv}"')
         return 11
 
+    
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
+
     text = f' Area: "{args.panel_area:.2f}m²"'
     text += f', Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}"'
     text += f', Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"'
     logger.info(text)
     text = f' Efficiency: "{args.panel_efficiency:.0f}%"'
-    text += f', Start_Barrier: "{args.start_barrier:.0f}W"' 
+    text += f', Start Barrier: "{args.start_barrier:.0f}W"'
+    if args.inverter_limit is not None:
+        text += f', Inverter Limit: "{args.inverter_limit:.0f}W"' 
     logger.info(text)
 
     pp = Panel_Power(args.lat, 
