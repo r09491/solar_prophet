@@ -47,7 +47,7 @@ def get_vector(azimuth, altitude):
 class Panel_Power(object):
 
     def __init__(self, lat, lon, name, direction, slope, area, efficiency, threshold,
-                 battery_split, battery_full, battery_swap, day):
+                 battery_split, battery_full, battery_first, day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
         stamps = pd.date_range(start = start, periods = 24*60, freq = 'T', tz=tzinfo)
@@ -81,8 +81,8 @@ class Panel_Power(object):
 
         self.battery_split = 0.0 if battery_split is None else battery_split 
         self.battery_full = pows.sum()/60 if battery_full is None else battery_full
-        self.battery_swap = battery_swap
-        
+        self.battery_first = battery_first or (battery_split is None and battery_full is None) 
+
         self.tzinfo = tzinfo
         self.name = name
 
@@ -157,25 +157,12 @@ class Panel_Power(object):
 
         bsplit = self.battery_split
         bfull =  self.battery_full
-        bswap =  self.battery_swap
+        bfirst =  self.battery_first
 
         """ Prepare plots """
 
-        if bswap == 0:
-            # Anker Solix 1600
-            
-            house_w = pows.copy()
-            house_w[house_w > bsplit] = bsplit
-            house_wh = house_w.cumsum()/60
+        if bfirst:
 
-            bats_w = pows.copy() - house_w
-            bats_wh = bats_w.cumsum()/60
-            bats_wh[bats_wh >= bfull] = bfull
-            bats_w[bats_wh >= bfull] = 0
-
-        else:
-            # Ecoflow Delta 2000
-            
             bats_w = pows.copy()
             bats_w[bats_w > bsplit] = bsplit
             bats_wh = bats_w.cumsum()/60
@@ -184,6 +171,17 @@ class Panel_Power(object):
 
             house_w = pows.copy() - bats_w
             house_wh = house_w.cumsum()/60
+
+        else:
+
+            house_w = pows.copy()
+            house_w[house_w > bsplit] = bsplit
+            house_wh = house_w.cumsum()/60
+
+            bats_w = pows.copy() - house_w
+            bats_wh = bats_w.cumsum()/60
+            bats_wh[bats_wh >= bfull] = bfull
+            bats_w[bats_wh >= bfull] = 0
 
         lost_w = pows.copy() - house_w - bats_w
         lost_wh = lost_w.cumsum()/60
@@ -329,11 +327,11 @@ def parse_arguments():
     parser.add_argument('--battery_full', type = float, default = None,
                         help = "Energy when a battery is considered full in systems with storage [Wh]")
 
-    parser.add_argument('--battery_swap', type = int, default = 0,
-                        help = "If False the user power is limited to the provided value. The battery consumes the rest. If True the user power is limited to the provided value. The battery uses the rest.")
+    parser.add_argument('--battery_first', action = 'store_true',
+                        help = "Serve battery first! Serve house second!")
     
     parser.add_argument('--plot', action = 'store_true',
-                        help = "Controls if results are to be shown")
+                        help = "Plot the result")
 
     parser.add_argument('--csv', default = None,
                         help = "Directory for saving of the CSV file if needed")
@@ -344,7 +342,7 @@ def parse_arguments():
                         default = datetime.now().strftime('%Y-%m-%d'), nargs = '?',
                         help = 'Day for forecast')
 
-    parser.set_defaults(plot = False)
+    parser.set_defaults(plot = False, battery_first = False)
     
     return parser.parse_args()
 
@@ -377,12 +375,16 @@ def main():
         return 6
 
     if args.battery_full is not None and args.battery_full < 0:
-        logger.error('The full energy is out of range  "{}".'.format(args.battery_split))
-        return 6
+        logger.error('The full energy is out of range  "{}".'.format(args.battery_full))
+        return 7
 
+    if args.battery_first and args.battery_split is None and args.battery_full is None:
+        logger.error('Battery parameters are illegal.')
+        return 8
+        
     if not args.csv is None and not os.path.isdir(args.csv):
         logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
-        return 8
+        return 9
 
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
     logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
@@ -398,13 +400,13 @@ def main():
                      args.threshold,
                      args.battery_split,
                      args.battery_full,
-                     args.battery_swap,
+                     args.battery_first,
                      args.forecast_day)
 
     errcode = pp.summarize()
     if errcode > 0:
         logger.error(f'The cobination of provided parameters does not qualify for harvesting')
-        return 7
+        return 10
 
     if not args.csv is None:            
         save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%Y-%m-%d") + '.csv'
