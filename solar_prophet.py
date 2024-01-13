@@ -91,8 +91,8 @@ class Panel_Power(object):
             """ The rest is for the house """
             
             house_w = tot_w.copy() - bat_w
-            if limit is not None:
-                house_w[house_w > limit] = limit
+            if inverter_limit is not None:
+                house_w[house_w > inverter_limit] = inverter_limit
             house_wh = house_w.cumsum()/60
             if battery_split is not None:
                 bat_w[bat_w > battery_split] = battery_split
