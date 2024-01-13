@@ -68,23 +68,69 @@ class Panel_Power(object):
         meteorads = sunrads * (METEO[day.month - 1] / sunrads.sum())
 
         # Consider panel features
-        bestpows = meteorads*area*efficiency
-        bestpows[bestpows < start_barrier] = 0
+        best_w = meteorads*area*efficiency
+        best_w[best_w < start_barrier] = 0
 
         # Consider attitude
-        pows = bestpows * np.dot(sunvecs, get_vector(direction, slope))
+        tot_w = best_w * np.dot(sunvecs, get_vector(direction, slope))
 
         # Consider system limits
-        pows[pows < start_barrier] = 0
-        pows[pows > inverter_limit] = inverter_limit
+        tot_w[tot_w < start_barrier] = 0
+
+        if battery_first:
+            """ The power is delivered to the battery first """
+
+            bat_w = tot_w.copy()
+            if battery_split is not None:
+                bat_w[bat_w > battery_split] = battery_split
+            bat_wh = bat_w.cumsum()/60
+            if battery_full is not None:
+                bat_wh[bat_wh >= battery_full] = battery_full
+                bat_w[bat_wh >= battery_full] = 0
+
+            """ The rest is for the house """
+            
+            house_w = tot_w.copy() - bat_w
+            if limit is not None:
+                house_w[house_w > limit] = limit
+            house_wh = house_w.cumsum()/60
+            if battery_split is not None:
+                bat_w[bat_w > battery_split] = battery_split
+
+        else:
+            """ The power is delivered to the house first """
+
+            house_w = tot_w.copy()
+            if battery_split is not None:
+                house_w[house_w > battery_split] = battery_split
+            if inverter_limit is not None:
+                house_w[house_w > inverter_limit] = inverter_limit
+            house_wh = house_w.cumsum()/60
+
+            """ The rest is for the battery """
+
+            bat_w = tot_w.copy() - house_w
+            bat_wh = bat_w.cumsum()/60
+            if battery_full is not None:
+                bat_wh[bat_wh >= battery_full] = battery_full
+                bat_w[bat_wh >= battery_full] = 0
+
+        lost_w = tot_w.copy() - house_w - bat_w
+        lost_wh = lost_w.cumsum()/60
 
         data = {'azimuth':sunazis, 'altitude':sunalts,'sunrads':sunrads,
-                'meteorads':meteorads, 'bestpows':bestpows, 'power':pows}
+                'meteorads':meteorads, 'best_w':best_w, 'tot_w':tot_w,
+                'house_w':house_w, 'bat_w':bat_w,'lost_w':lost_w,
+                'house_wh':house_wh, 'bat_wh':bat_wh,'lost_wh':lost_wh}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
-        self.battery_split = 0.0 if battery_split is None else battery_split 
-        self.battery_full = pows.sum()/60 if battery_full is None else battery_full
-        self.battery_first = battery_first or (battery_split is None and battery_full is None) 
+        self.efficiency = efficiency
+        self.inverter_limit = inverter_limit
+
+        self.battery_split = battery_split 
+        self.battery_full = battery_full
+        self.battery_first = battery_first
+        
 
         self.tzinfo = tzinfo
         self.name = name
@@ -96,8 +142,8 @@ class Panel_Power(object):
         alts = self.df.altitude
         rads = self.df.sunrads
         meteos = self.df.meteorads
-        bests = self.df.bestpows
-        pows = self.df.power
+        best_w = self.df.best_w
+        tot_w = self.df.tot_w
         name = self.name
 
         maxindex = rads.argmax()
@@ -105,7 +151,7 @@ class Panel_Power(object):
         maxazi = azis[maxindex]
         maxalt = alts[maxindex]
 
-        if len(dates[pows>0]) == 0:
+        if len(dates[tot_w>0]) == 0:
             logger.info("No Harvesting in the provided configuration!")
             return 1
 
@@ -128,20 +174,20 @@ class Panel_Power(object):
         text += f' Total:"{np.sum(meteos/60):.0f}Wh/m²"'
         logger.info(text)
         
-        text = f'Harvest # Rise: "{dates[pows>0][0].strftime("%H:%M %Z")}",'
-        text += f' Set:"{dates[pows>0][-1].strftime("%H:%M %Z")}",'
-        text += f' "{(dates[pows>0][-1] - dates[pows>0][0]).total_seconds()/3600:.1f}h"'
+        text = f'Harvest # Rise: "{dates[tot_w>0][0].strftime("%H:%M %Z")}",'
+        text += f' Set:"{dates[tot_w>0][-1].strftime("%H:%M %Z")}",'
+        text += f' "{(dates[tot_w>0][-1] - dates[tot_w>0][0]).total_seconds()/3600:.1f}h"'
         logger.info(text)
-        text = f'Harvest # Mean:"{np.mean(pows):.0f}W",'
-        text += f' Max:"{np.max(pows):.0f}W",'
-        text += f' Total:"{np.sum(pows/60):.0f}Wh",'
-        text += f' "{np.sum(pows/60/12.5):.0f}Ah"'
+        text = f'Harvest # Mean:"{np.mean(tot_w):.0f}W",'
+        text += f' Max:"{np.max(tot_w):.0f}W",'
+        text += f' Total:"{np.sum(tot_w/60):.0f}Wh",'
+        text += f' "{np.sum(tot_w/60/12.5):.0f}Ah"'
         logger.info(text)
         
         return 0
 
     
-    def show_plot(self, lat, lon, direction, slope, area, efficiency, limit):
+    def show_plot(self, lat, lon, direction, slope, area):
         dformatter = mdates.DateFormatter('%H:%M')
         dformatter.set_tzinfo(self.tzinfo)
 
@@ -150,46 +196,33 @@ class Panel_Power(object):
         alts = self.df.altitude
         rads = self.df.sunrads
         meteos = self.df.meteorads
-        bests = self.df.bestpows
-        pows = self.df.power
+        best_w = self.df.best_w
+        tot_w = self.df.tot_w
+        house_w = self.df.house_w
+        bat_w = self.df.bat_w
+        lost_w = self.df.lost_w
+        house_wh = self.df.house_wh
+        bat_wh = self.df.bat_wh
+        lost_wh = self.df.lost_wh
 
-        pows_mean = pows.mean()
-        pows_max = pows.max()
-        pows_sum = pows.sum()/60
-        pows_wh = pows.cumsum()/60
+        best_mean = best_w.mean()
+        best_max = best_w.max()
+        best_sum = best_w.sum()/60
+        best_wh = best_w.cumsum()/60
+        
+        tot_mean = tot_w.mean()
+        tot_max = tot_w.max()
+        tot_sum = tot_w.sum()/60
+        tot_wh = tot_w.cumsum()/60
 
+        pefficiency = self.efficiency
+        ilimit = self.inverter_limit
         bsplit = self.battery_split
         bfull =  self.battery_full
         bfirst =  self.battery_first
 
         """ Prepare plots """
 
-        if bfirst:
-
-            bats_w = pows.copy()
-            bats_w[bats_w > bsplit] = bsplit
-            bats_wh = bats_w.cumsum()/60
-            bats_wh[bats_wh >= bfull] = bfull
-            bats_w[bats_wh >= bfull] = 0
-
-            house_w = pows.copy() - bats_w
-            house_wh = house_w.cumsum()/60
-
-        else:
-
-            house_w = pows.copy()
-            house_w[house_w > bsplit] = bsplit
-            house_wh = house_w.cumsum()/60
-
-            bats_w = pows.copy() - house_w
-            bats_wh = bats_w.cumsum()/60
-            bats_wh[bats_wh >= bfull] = bfull
-            bats_w[bats_wh >= bfull] = 0
-
-        lost_w = pows.copy() - house_w - bats_w
-        lost_wh = lost_w.cumsum()/60
-
-        
         today = dates[0].strftime("%Y-%m-%d")
         text = f'{self.name} Forecast {today}'
         fig, axes = plt.subplots(nrows=5, figsize=(9,12))
@@ -228,19 +261,20 @@ class Panel_Power(object):
         axes[2].xaxis.set_major_formatter(dformatter)
         
 
-        axes[3].fill_between(dates, house_w + bats_w + lost_w,
+        axes[3].fill_between(dates, house_w + bat_w + lost_w,
                              color='black', label='LOST', alpha = 0.5)        
-        axes[3].fill_between(dates, house_w + bats_w,
+        axes[3].fill_between(dates, house_w + bat_w,
                              color='magenta', label='BAT', alpha = 0.7)        
         axes[3].fill_between(dates, house_w,
                              color='cyan', label='HOUSE', alpha = 0.9)        
 
-        axes[3].axhline(bsplit, color='cyan', linewidth=2, label='SPLIT')
+        if bsplit is not None:
+            axes[3].axhline(bsplit, color='cyan', linewidth=2, label='SPLIT')
 
-        if limit < bests.max():
-            axes[3].axhline(limit, color='black', linestyle='--', label='INVERTER')
+        if ilimit is not None and ilimit < best_max:
+            axes[3].axhline(ilimit, color='black', linestyle='--', label='INVERTER')
 
-        axes[3].plot(dates, bests, color='black', linestyle='--', label = "BEST")
+        axes[3].plot(dates, best_w, color='black', linestyle='--', label = "BEST")
     
         axes[3].legend(loc="upper left")    
         axes[3].grid(which='major', linestyle='-', linewidth=2, axis='both')
@@ -249,24 +283,24 @@ class Panel_Power(object):
 
         title = f'Power Forecast #'
         title +=  f' {direction:.0f}°/{slope:.0f}°'
-        title +=  f' | {area:.2f}m² | {efficiency:.0f}%'
-        title +=  f' > {pows_mean:.0f}W^{pows_max:.0f}W'
+        title +=  f' | {area:.2f}m² | {100*pefficiency:.0f}%'
+        title +=  f' > {tot_mean:.0f}W^{tot_max:.0f}W'
         axes[3].set_title(title )
         axes[3].set_ylabel('Power [W]')
         axes[3].xaxis.set_major_formatter(dformatter)
 
         
-        axes[4].fill_between(dates, house_wh + bats_wh + lost_wh,
+        axes[4].fill_between(dates, house_wh + bat_wh + lost_wh,
                              color='black', label='LOST', alpha = 0.5)        
-        axes[4].fill_between(dates, house_wh + bats_wh,
+        axes[4].fill_between(dates, house_wh + bat_wh,
                              color='magenta', label='BAT', alpha = 0.7)        
         axes[4].fill_between(dates, house_wh,
                              color='cyan', label='HOUSE', alpha = 0.9)        
 
-        if 0 < bats_wh[-1] < bfull:
+        if bfull is not None and 0 < bat_wh[-1] < bfull:
             axes[4].axhline(bfull+house_wh[-1], color='magenta', linewidth=2, label='FULL')
 
-        axes[4].plot(dates, bests.cumsum()/60, color='black', linestyle='--', label = "BEST")
+        axes[4].plot(dates, best_wh, color='black', linestyle='--', label = "BEST")
 
         axes[4].legend(loc="upper left")
         axes[4].grid(which='major', linestyle='-', linewidth=2, axis='both')
@@ -274,9 +308,9 @@ class Panel_Power(object):
         axes[4].minorticks_on()
         title = f'Harvest Forecast #'
         title += f' {house_wh[-1]:.0f}'
-        title += f' + {bats_wh[-1]:.0f}'
+        title += f' + {bat_wh[-1]:.0f}'
         title += f' + {lost_wh[-1]:.0f}'
-        title += f' = {pows_sum:.0f}Wh'
+        title += f' = {tot_sum:.0f}Wh'
         axes[4].set_title(title)
         axes[4].set_ylabel('Work [Wh]')
         axes[4].xaxis.set_major_formatter(dformatter)
@@ -409,7 +443,7 @@ def main():
     text += f', Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"'
     logger.info(text)
     text = f' Efficiency: "{args.panel_efficiency:.0f}%"'
-    text += f',Start_Barrier: "{args.start_barrier:.0f}W"' 
+    text += f', Start_Barrier: "{args.start_barrier:.0f}W"' 
     logger.info(text)
 
     pp = Panel_Power(args.lat, 
@@ -438,7 +472,7 @@ def main():
         
     if args.plot:
         pp.show_plot(args.lat, args.lon, args.panel_direction,
-                     args.panel_slope, args.panel_area, args.panel_efficiency, args.inverter_limit)
+                     args.panel_slope, args.panel_area)
 
     return 0
 

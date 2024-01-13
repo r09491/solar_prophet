@@ -6,7 +6,7 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR && \
 	    --panel_direction 175 \
 	    --panel_slope 45 \
 	    --panel_area 0.12 \
-	    --efficiency 14 \
+	    --panel_efficiency 14 \
             --start_barrier 0 \
 	    --plot
 
