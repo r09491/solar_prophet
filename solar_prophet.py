@@ -47,7 +47,7 @@ def get_vector(azimuth, altitude):
 class Panel_Power(object):
 
     def __init__(self, lat, lon, name, direction, slope, area, efficiency, start_barrier,
-                 battery_split, battery_full, battery_first, day):
+                 inverter_limit, battery_split, battery_full, battery_first, day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
         stamps = pd.date_range(start = start, periods = 24*60, freq = 'T', tz=tzinfo)
@@ -73,7 +73,10 @@ class Panel_Power(object):
 
         # Consider attitude
         pows = bestpows * np.dot(sunvecs, get_vector(direction, slope))
+
+        # Consider system limits
         pows[pows < start_barrier] = 0
+        pows[pows > inverter_limit] = inverter_limit
 
         data = {'azimuth':sunazis, 'altitude':sunalts,'sunrads':sunrads,
                 'meteorads':meteorads, 'bestpows':bestpows, 'power':pows}
@@ -138,7 +141,7 @@ class Panel_Power(object):
         return 0
 
     
-    def show_plot(self, lat, lon, direction, slope, area, efficiency):
+    def show_plot(self, lat, lon, direction, slope, area, efficiency, limit):
         dformatter = mdates.DateFormatter('%H:%M')
         dformatter.set_tzinfo(self.tzinfo)
 
@@ -234,6 +237,9 @@ class Panel_Power(object):
 
         axes[3].axhline(bsplit, color='cyan', linewidth=2, label='SPLIT')
 
+        if limit < bests.max():
+            axes[3].axhline(limit, color='black', linestyle='--', label='INVERTER')
+
         axes[3].plot(dates, bests, color='black', linestyle='--', label = "BEST")
     
         axes[3].legend(loc="upper left")    
@@ -321,6 +327,9 @@ def parse_arguments():
     parser.add_argument('--start_barrier', type = float, default = 20.0,
                         help = "Threshold when system accepts input power [W]")
 
+    parser.add_argument('--inverter_limit', type = float, default = None,
+                        help = "The maximum power limit of the inverter [W]")
+    
     parser.add_argument('--battery_split', type = float, default = None,
                         help = "Threshold when to charge battery in systems with storage [W]")
 
@@ -370,21 +379,29 @@ def main():
         logger.error('The efficiency of the panel is out of range  "{}".'.format(args.panel_efficiency))
         return 5
 
+    if args.start_barrier < 0:
+        logger.error('The start barrier is out of range  "{}".'.format(args.start_barrier))
+        return 6
+
+    if args.inverter_limit is not None and (args.inverter_limit < 0 or args.inverter_limit > 800):
+        logger.error('The inverter limit is out of range  "{}".'.format(args.inverter_limit))
+        return 7
+    
     if args.battery_split is not None and args.battery_split < 0:
         logger.error('The split power is out of range  "{}".'.format(args.battery_split))
-        return 6
+        return 8
 
     if args.battery_full is not None and args.battery_full < 0:
         logger.error('The full energy is out of range  "{}".'.format(args.battery_full))
-        return 7
+        return 9
 
     if args.battery_first and args.battery_split is None and args.battery_full is None:
         logger.error('Battery parameters are illegal.')
-        return 8
+        return 10
         
     if not args.csv is None and not os.path.isdir(args.csv):
         logger.error('The directory to save the CSV does not exist "{}".'.format(args.csv))
-        return 9
+        return 11
 
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
     text = f' Area: "{args.panel_area:.2f}m²"'
@@ -401,8 +418,9 @@ def main():
                      args.panel_direction, 
                      args.panel_slope, 
                      args.panel_area,
-                     args.panel_efficiency / 100, 
+                     args.panel_efficiency / 100,
                      args.start_barrier,
+                     args.inverter_limit,
                      args.battery_split,
                      args.battery_full,
                      args.battery_first,
@@ -411,7 +429,7 @@ def main():
     errcode = pp.summarize()
     if errcode > 0:
         logger.error(f'The cobination of provided parameters does not qualify for harvesting')
-        return 10
+        return 12
 
     if not args.csv is None:            
         save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%Y-%m-%d") + '.csv'
@@ -420,7 +438,7 @@ def main():
         
     if args.plot:
         pp.show_plot(args.lat, args.lon, args.panel_direction,
-                     args.panel_slope, args.panel_area, args.panel_efficiency)
+                     args.panel_slope, args.panel_area, args.panel_efficiency, args.inverter_limit)
 
     return 0
 

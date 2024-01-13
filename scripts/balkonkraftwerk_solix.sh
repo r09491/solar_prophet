@@ -23,6 +23,7 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --panel_area 3.905 \
 	    --panel_efficiency 100 \
 	    --start_barrier 10 \
+	    --inverter_limit 600 \
 	    --battery_split 50 \
 	    --battery_full 1600 \
 	    --plot $1
