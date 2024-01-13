@@ -14,5 +14,5 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR && \
 	    --panel_direction 180 \
 	    --panel_slope 45 \
 	    --panel_area 480 \
-	    --efficiency 2 \
-            --threshold 0 $1
+	    --panel_efficiency 80 \
+            --start_barrier 0 $1

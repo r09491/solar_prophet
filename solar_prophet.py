@@ -387,8 +387,13 @@ def main():
         return 9
 
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
-    logger.info(f' Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}", Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"')
-    logger.info(f' Area: "{args.panel_area:.2f}m²", Efficiency: "{args.panel_efficiency:.0f}%", Start_Barrier: "{args.start_barrier:.0f}W"' )
+    text = f' Area: "{args.panel_area:.2f}m²"'
+    text += f', Lat/Lon:"{args.lat:.2f}/{args.lon:.2f}"'
+    text += f', Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"'
+    logger.info(text)
+    text = f' Efficiency: "{args.panel_efficiency:.0f}%"'
+    text += f',Start_Barrier: "{args.start_barrier:.0f}W"' 
+    logger.info(text)
 
     pp = Panel_Power(args.lat, 
                      args.lon, 
