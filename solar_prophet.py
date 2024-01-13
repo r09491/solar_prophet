@@ -4,7 +4,7 @@ __doc__="""
 Estimates the power of a solar panel dependent on different factors
 like location and pannel attitude
 """
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __author__ = "sepp.heid@t-online.de"
 
 
@@ -79,7 +79,6 @@ class Panel_Power(object):
 
         if battery_first:
             """ The power is delivered to the battery first """
-
             bat_w = tot_w.copy()
             if battery_split is not None:
                 bat_w[bat_w > battery_split] = battery_split
@@ -325,6 +324,9 @@ class Panel_Power(object):
 
     def save_csv(self, name):
         self.df.to_csv(name)
+
+def ymd2date(ymd):
+    return datetime.strptime(ymd, '%Y-%m-%d').date()
         
 
 def parse_arguments():
@@ -332,7 +334,7 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(
         prog=os.path.basename(sys.argv[0]),
-        description='Estimates the power of a solar panel',
+        description='Estimates the power and energy of a solar panel',
         epilog=__doc__)
 
     parser.add_argument('--version', action = 'version', version = __version__)
@@ -370,19 +372,17 @@ def parse_arguments():
     parser.add_argument('--battery_full', type = float, default = None,
                         help = "Energy when a battery is considered full in systems with storage [Wh]")
 
-    parser.add_argument('--battery_first', action = 'store_true',
-                        help = "Serve battery first! Serve house second!")
+    parser.add_argument('--battery_first', action = 'store_true', dest='battery_first',
+                        help = "Serve battery as first! Serve house as second!")
     
     parser.add_argument('--plot', action = 'store_true',
                         help = "Plot the result")
-
+    
     parser.add_argument('--csv', default = None,
                         help = "Directory for saving of the CSV file if needed")
 
-
     parser.add_argument('forecast_day',
-                        type=lambda d: datetime.strptime(d, '%Y-%m-%d').date(),
-                        default = datetime.now().strftime('%Y-%m-%d'), nargs = '?',
+                        type=ymd2date, default = datetime.now().strftime('%Y-%m-%d'), nargs = '?',
                         help = 'Day for forecast')
 
     parser.set_defaults(plot = False, battery_first = False)
@@ -462,7 +462,7 @@ def main():
 
     errcode = pp.summarize()
     if errcode > 0:
-        logger.error(f'The cobination of provided parameters does not qualify for harvesting')
+        logger.error(f'The combination of the provided parameters does not qualify for harvesting')
         return 12
 
     if not args.csv is None:            
@@ -475,6 +475,7 @@ def main():
                      args.panel_slope, args.panel_area)
 
     return 0
+
 
 if __name__ == '__main__':
     try:
