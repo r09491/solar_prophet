@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
@@ -145,18 +145,21 @@ class Panel_Power(object):
         tot_w = self.df.tot_w
         name = self.name
 
-        maxindex = rads.argmax()
-        maxdate = dates[maxindex]
-        maxazi = azis[maxindex]
-        maxalt = alts[maxindex]
+        maxradsdate = rads.argmax()
+        maxradsazi = azis[maxradsdate]
+        maxradsalt = alts[maxradsdate]
 
+        if type(maxradsdate) == np.int64:
+            # python >= 3.11
+            maxradsdate = dates[maxradsdate]
+              
         if len(dates[tot_w>0]) == 0:
             logger.info("No Harvesting in the provided configuration!")
             return 1
 
         text = f'Best Radiation Attitude #'
-        text += f' "{maxazi:.0f}/{maxalt:.0f}"'
-        text += f' @ "{maxdate.strftime("%H:%M %Z")}"'
+        text += f' "{maxradsazi:.0f}/{maxradsalt:.0f}"'
+        text += f' @ "{maxradsdate.strftime("%H:%M %Z")}"'
         logger.info(text)
 
         text = f'Sun # Rise:"{dates[0].strftime("%H:%M %Z")}",'
@@ -186,7 +189,7 @@ class Panel_Power(object):
         return 0
 
     
-    def show_plot(self, lat, lon, direction, slope, area):
+    def save_plot(self, lat, lon, direction, slope, area, full_save_name):
         dformatter = mdates.DateFormatter('%H:%M')
         dformatter.set_tzinfo(self.tzinfo)
 
@@ -208,7 +211,7 @@ class Panel_Power(object):
         best_max = best_w.max()
         best_sum = best_w.sum()/60
         best_wh = best_w.cumsum()/60
-        
+
         tot_mean = tot_w.mean()
         tot_max = tot_w.max()
         tot_sum = tot_w.sum()/60
@@ -317,13 +320,13 @@ class Panel_Power(object):
 
         fig.tight_layout(pad=2.0)
 
-        #fig.savefig(name)
-        #plt.close(fig) 
-        plt.show()
+        fig.savefig(full_save_name)
+        plt.close(fig) 
+        #plt.show()
 
 
-    def save_csv(self, name):
-        self.df.to_csv(name)
+    def save_csv(self, full_save_name):
+        self.df.to_csv(full_save_name)
 
 def ymd2date(ymd):
     return datetime.strptime(ymd, '%Y-%m-%d').date()
@@ -378,14 +381,14 @@ def parse_arguments():
     parser.add_argument('--csv', default = None,
                         help = 'The directory for saving of the CSV file if needed')
 
-    parser.add_argument('--plot', action = 'store_true',
-                        help = 'Display the results in a plot')
+    parser.add_argument('--plot', default = None,
+                        help = 'The directory for saving of the PNG file if needed')
     
     parser.add_argument('forecast_day',
                         type=ymd2date, default = datetime.now().strftime('%Y-%m-%d'), nargs = '?',
                         help = 'Day for forecast')
 
-    parser.set_defaults(plot = False, battery_first = False)
+    parser.set_defaults(battery_first = False)
 
     return parser.parse_args()
 
@@ -470,14 +473,17 @@ def main():
         return 12
 
     if not args.csv is None:            
-        save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%Y-%m-%d") + '.csv'
+        save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%y%m%d") + '.csv'
         pp.save_csv(os.path.join(args.csv, save_name))
         logger.info(f'CSV saved to  "{os.path.join(args.csv, save_name)}"' )
         
-    if args.plot:
-        pp.show_plot(args.lat, args.lon, args.panel_direction,
-                     args.panel_slope, args.panel_area)
-
+    if not args.plot is None:
+        save_name = args.panel_name.replace(' ', '_') + args.forecast_day.strftime("_%y%m%d") + '.png'
+        pp.save_plot(args.lat, args.lon, args.panel_direction,
+                     args.panel_slope, args.panel_area,
+                     os.path.join(args.plot, save_name))
+        logger.info(f'PLOT saved to  "{os.path.join(args.plot, save_name)}"' )
+        
     return 0
 
 

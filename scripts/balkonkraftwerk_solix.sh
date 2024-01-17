@@ -26,4 +26,5 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --inverter_limit 600 \
 	    --battery_split 50 \
 	    --battery_full 1600 \
-	    --plot $1
+	    --plot $SOLAR_PROPHET_STORE_DIR/plot $1
+

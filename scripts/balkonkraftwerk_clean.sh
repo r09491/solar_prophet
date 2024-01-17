@@ -16,11 +16,6 @@
 # of 12 @ slope 45 is required
 #
 
-# Efficiency considering weather (Deutscher Wetterdienst)
-# Jan:15, Feb:25, Mar:60, Apr:65, May:78, Jun:79, 
-# Jul:80, Aug:74,Sep:49, Oct:36, Nov:15, Dez:15
-#
-
 mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv &&\
     python3 ../solar_prophet.py --panel_name "Balkon KW Solakon SK-011113" \
 	    --panel_direction 180 \
@@ -29,4 +24,4 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --panel_efficiency 100 \
 	    --start_barrier 10 \
 	    --inverter_limit 800 \
-	    --plot $1
+	    --plot $SOLAR_PROPHET_STORE_DIR/plot $1
