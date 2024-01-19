@@ -15,6 +15,7 @@
 # To achieve a the 890 kWH harvest (anker) of one year an efficiency
 # of 12 @ slope 45 is required
 #
+# The solix starts working above 30W. The APsystems EZ1 inverter itself at 0W.
 
 mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv &&\
     python3 ../solar_prophet.py --panel_name "Balkon KW Solakon SK-011113" \
@@ -22,6 +23,6 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --panel_slope 37 \
 	    --panel_area 3.905 \
 	    --panel_efficiency 100 \
-	    --start_barrier 10 \
+	    --system_barrier 0 \
 	    --inverter_limit 800 \
 	    --plot $SOLAR_PROPHET_STORE_DIR/plot $1

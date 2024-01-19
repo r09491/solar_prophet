@@ -46,7 +46,7 @@ def get_vector(azimuth, altitude):
 
 class Panel_Power(object):
 
-    def __init__(self, lat, lon, name, direction, slope, area, efficiency, start_barrier,
+    def __init__(self, lat, lon, name, direction, slope, area, efficiency, system_barrier,
                  inverter_limit, battery_split, battery_full, battery_first, day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
@@ -69,13 +69,13 @@ class Panel_Power(object):
 
         # Consider panel features
         best_w = meteorads*area*efficiency
-        best_w[best_w < start_barrier] = 0
+        best_w[best_w < system_barrier] = 0
 
         # Consider attitude
         tot_w = best_w * np.dot(sunvecs, get_vector(direction, slope))
 
         # Consider system limits
-        tot_w[tot_w < start_barrier] = 0
+        tot_w[tot_w < system_barrier] = 0
 
         if battery_first:
             """ The power is delivered to the battery first """
@@ -363,8 +363,8 @@ def parse_arguments():
     parser.add_argument('--panel_efficiency', type = float, default = 100.0,
                         help = 'The efficiency of the panel [%%]. Blue Sky ~ 180. Mist ~ 20')
 
-    parser.add_argument('--start_barrier', type = float, default = 20.0,
-                        help = 'The threshold when the system accepts the input [W]')
+    parser.add_argument('--system_barrier', type = float, default = 20.0,
+                        help = 'The threshold above which the system (solarbank, inverter, powerstation) is working [W]')
 
     parser.add_argument('--inverter_limit', type = float, default = None,
                         help = 'The maximum power limit of the inverter [W]')
@@ -416,8 +416,8 @@ def main():
         logger.error(f'The efficiency of the panel is out of range  "{args.panel_efficiency}"')
         return 5
 
-    if args.start_barrier < 0:
-        logger.error(f'The start barrier is out of range  "{args.start_barrier}"')
+    if args.system_barrier < 0:
+        logger.error(f'The system barrier is out of range  "{args.system_barrier}"')
         return 6
 
     if args.inverter_limit is not None and (args.inverter_limit < 0 or args.inverter_limit > 800):
@@ -448,7 +448,7 @@ def main():
     text += f', Dir/Slope:"{args.panel_direction:.0f}/{args.panel_slope:.0f}"'
     logger.info(text)
     text = f' Efficiency: "{args.panel_efficiency:.0f}%"'
-    text += f', Start Barrier: "{args.start_barrier:.0f}W"'
+    text += f', Start Barrier: "{args.system_barrier:.0f}W"'
     if args.inverter_limit is not None:
         text += f', Inverter Limit: "{args.inverter_limit:.0f}W"' 
     logger.info(text)
@@ -460,7 +460,7 @@ def main():
                      args.panel_slope, 
                      args.panel_area,
                      args.panel_efficiency / 100,
-                     args.start_barrier,
+                     args.system_barrier,
                      args.inverter_limit,
                      args.battery_split,
                      args.battery_full,

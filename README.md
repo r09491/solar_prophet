@@ -3,10 +3,11 @@ Estimate the power of solar panels for a given day dependent on various factors
 'solar_prophet.py' is the only script provided. It is dependent on 'pysolar', 'pandas' and 'matplotlib' to be installed somehow.
 
 ```
-~/solar_prophet $ ./solar_prophet.py -h
-usage: solar_prophet.py [-h] [--version] [--lat LAT] [--lon LON] [--panel_name PANEL_NAME] [--panel_direction PANEL_DIRECTION] [--panel_slope PANEL_SLOPE]
-                        [--panel_area PANEL_AREA] [--panel_efficiency PANEL_EFFICIENCY] [--start_barrier START_BARRIER] [--inverter_limit INVERTER_LIMIT]
-                        [--battery_split BATTERY_SPLIT] [--battery_full BATTERY_FULL] [--battery_first] [--csv CSV] [--plot]
+~/solar_prophet/scripts $ solar_prophet.py -h
+usage: solar_prophet.py [-h] [--version] [--lat LAT] [--lon LON] [--panel_name PANEL_NAME] [--panel_direction PANEL_DIRECTION]
+                        [--panel_slope PANEL_SLOPE] [--panel_area PANEL_AREA] [--panel_efficiency PANEL_EFFICIENCY]
+                        [--system_barrier SYSTEM_BARRIER] [--inverter_limit INVERTER_LIMIT] [--battery_split BATTERY_SPLIT]
+                        [--battery_full BATTERY_FULL] [--battery_first] [--csv CSV] [--plot PLOT]
                         [forecast_day]
 
 Estimates the power and energy of a solar panel
@@ -29,8 +30,8 @@ options:
                         The size of the panel area [m²]
   --panel_efficiency PANEL_EFFICIENCY
                         The efficiency of the panel [%]. Blue Sky ~ 180. Mist ~ 20
-  --start_barrier START_BARRIER
-                        The threshold when the system accepts the input [W]
+  --system_barrier SYSTEM_BARRIER
+                        The threshold above which the system (solarbank, inverter, powerstation) is working [W]
   --inverter_limit INVERTER_LIMIT
                         The maximum power limit of the inverter [W]
   --battery_split BATTERY_SPLIT
@@ -39,7 +40,7 @@ options:
                         The energy when a battery is considered full in systems with storage [Wh]
   --battery_first       Serve the battery first! Serve the house second!
   --csv CSV             The directory for saving of the CSV file if needed
-  --plot                Display the results in a plot
+  --plot PLOT           The directory for saving of the PNG file if needed
 
 Estimates the power of a solar panel dependent on different factors like location and pannel attitude
 ~/solar_prophet $
@@ -48,19 +49,41 @@ Estimates the power of a solar panel dependent on different factors like locatio
 
 Under scripts there are a few examples. To run define the SOLAR_PROPHET_STORE_DIR first.
 
+The following is for standard weather conditions. To be specified with an efficiency of 100%!
+
 ```
-~/solar_prophet $ cd scripts/
 ~/solar_prophet/scripts $ . balkonkraftwerk_solix.sh
-INFO:solar_prophet.py:Estimating the harvest of "Balkon KW Solakon SK-011113" on "2024-01-13"
+INFO:solar_prophet.py:Estimating the harvest of "Balkon KW Solakon SK-011113" on "2024-01-19"
 INFO:solar_prophet.py: Area: "3.90m²", Lat/Lon:"49.05/11.78", Dir/Slope:"180/37"
-INFO:solar_prophet.py: Efficiency: "100%", Start Barrier: "10W", Inverter Limit: "600W"
-INFO:solar_prophet.py:Best Radiation Attitude # "180/19" @ "12:21 CET"
-INFO:solar_prophet.py:Sun # Rise:"08:06 CET", Set:"16:37 CET", "8.5h"
-INFO:solar_prophet.py:Sun # Mean:"578W/m²", Max:"813W/m²", Total:"4932Wh/m²"
-INFO:solar_prophet.py:Meteo # Mean:"79W/m²", Max:"112W/m²", Total:"677Wh/m²"
-INFO:solar_prophet.py:Harvest # Rise: "08:25 CET", Set:"16:18 CET", "7.9h"
-INFO:solar_prophet.py:Harvest # Mean:"261W", Max:"416W", Total:"2227Wh", "178Ah"
-~/solar_prophet/scripts $
+INFO:solar_prophet.py: Efficiency: "100%", Start Barrier: "30W", Inverter Limit: "600W"
+INFO:solar_prophet.py:Best Radiation Attitude # "180/21" @ "12:24 CET"
+INFO:solar_prophet.py:Sun # Rise:"08:01 CET", Set:"16:46 CET", "8.8h"
+INFO:solar_prophet.py:Sun # Mean:"593W/m²", Max:"828W/m²", Total:"5202Wh/m²"
+INFO:solar_prophet.py:Meteo # Mean:"77W/m²", Max:"108W/m²", Total:"677Wh/m²"
+INFO:solar_prophet.py:Harvest # Rise: "08:29 CET", Set:"16:18 CET", "7.8h"
+INFO:solar_prophet.py:Harvest # Mean:"253W", Max:"404W", Total:"2215Wh", "177Ah"
+INFO:solar_prophet.py:PLOT saved to  "/data/data/com.termux/files/home/storage/solar_prophet/plot/Balkon_KW_Solakon_SK-011113_240119.png"
+~/solar_prophet/scripts $ feh  "/data/data/com.termux/files/home/storage/solar_prophet/plot/Balkon_KW_Solakon_SK-011113_240119.png"
 ```
 
-![alt text](images/balkonkraftwerk_solix.png)
+![alt text](images/Balkon_KW_Solakon_SK-011113_240119_bright.png)
+
+However we have very bad weather. Almost foggy! To be specified with an efficiency of 10%
+
+```
+~/solar_prophet/scripts $ . balkonkraftwerk_solix.sh
+INFO:solar_prophet.py:Estimating the harvest of "Balkon KW Solakon SK-011113" on "2024-01-19"
+INFO:solar_prophet.py: Area: "3.90m²", Lat/Lon:"49.05/11.78", Dir/Slope:"180/37"
+INFO:solar_prophet.py: Efficiency: "10%", Start Barrier: "30W", Inverter Limit: "600W"
+INFO:solar_prophet.py:Best Radiation Attitude # "180/21" @ "12:24 CET"
+INFO:solar_prophet.py:Sun # Rise:"08:01 CET", Set:"16:46 CET", "8.8h"
+INFO:solar_prophet.py:Sun # Mean:"593W/m²", Max:"828W/m²", Total:"5202Wh/m²"
+INFO:solar_prophet.py:Meteo # Mean:"77W/m²", Max:"108W/m²", Total:"677Wh/m²"
+INFO:solar_prophet.py:Harvest # Rise: "10:17 CET", Set:"14:30 CET", "4.2h"
+INFO:solar_prophet.py:Harvest # Mean:"18W", Max:"40W", Total:"156Wh", "13Ah"
+INFO:solar_prophet.py:PLOT saved to  "/data/data/com.termux/files/home/storage/solar_prophet/plot/Balkon_KW_Solakon_SK-011113_240119.png"
+~/solar_prophet/scripts $ feh  "/data/data/com.termux/files/home/storage/solar_prophet/plot/Balkon_KW_Solakon_SK-011113_240119.png"
+```
+
+![alt text](images/Balkon_KW_Solakon_SK-011113_240119_dark.png)
+

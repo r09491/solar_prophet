@@ -5,7 +5,7 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv 
 	    --panel_direction 170 \
 	    --panel_slope 30 \
 	    --panel_efficiency 50 \
-	    --start_barrier 0 \
+	    --system_barrier 0 \
 	    --battery_full 75 \
 	    --plot \
 	    --csv $SOLAR_PROPHET_STORE_DIR/csv $1

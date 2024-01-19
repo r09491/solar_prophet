@@ -8,6 +8,6 @@ mkdir -p $SOLAR_PROPHET_STORE_DIR/csv && \
 	    --panel_slope 90 \
 	    --panel_area 0.6 \
 	    --panel_efficiency 100 \
-            --start_barrier 0 \
+            --system_barrier 0 \
 	    --plot $1
 
