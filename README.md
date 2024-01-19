@@ -49,7 +49,7 @@ Estimates the power of a solar panel dependent on different factors like locatio
 
 Under scripts there are a few examples. To run define the SOLAR_PROPHET_STORE_DIR first.
 
-The following is for standard weather conditions. To be specified with an efficiency of 100%!
+The following is for standard weather conditions. To be specified with an efficiency of 100%! The battery will be charged.
 
 ```
 ~/solar_prophet/scripts $ . balkonkraftwerk_solix.sh
@@ -68,7 +68,7 @@ INFO:solar_prophet.py:PLOT saved to  "/data/data/com.termux/files/home/storage/s
 
 ![alt text](images/Balkon_KW_Solakon_SK-011113_240119_bright.png)
 
-However we have very bad weather. Almost foggy! To be specified with an efficiency of 10%
+However we have very bad weather. Almost foggy! To be specified with an efficiency of 10%. The battery is not charged. There is very little power available for the house.
 
 ```
 ~/solar_prophet/scripts $ . balkonkraftwerk_solix.sh
