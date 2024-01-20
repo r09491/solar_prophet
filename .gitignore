@@ -3,9 +3,12 @@
 *.pyc
 *.egg-info
 *.gitconfig
+.gitignore
 .vveplug
 a.sh
 b.sh
+bc.sh
+bs.sh
 v.sh
 01*.sh
 __pycache__

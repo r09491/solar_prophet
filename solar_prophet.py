@@ -108,7 +108,9 @@ class Panel_Power(object):
 
             """ The rest is for the battery """
 
-            bat_w = tot_w.copy() - house_w
+            bat_w = np.full_like(tot_w, 0.0) \
+                if battery_split is None \
+                else tot_w.copy() - house_w
             bat_wh = bat_w.cumsum()/60
             if battery_full is not None:
                 bat_wh[bat_wh >= battery_full] = battery_full
