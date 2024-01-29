@@ -414,7 +414,7 @@ def main():
         logger.error(f'The slope of the panel is out of range  "{args.panel_slope}"')
         return 4
 
-    if args.panel_efficiency < 0 or args.panel_efficiency > 200:
+    if args.panel_efficiency < 0 or args.panel_efficiency > 300:
         logger.error(f'The efficiency of the panel is out of range  "{args.panel_efficiency}"')
         return 5
 
