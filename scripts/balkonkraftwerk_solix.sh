@@ -21,11 +21,13 @@
 
 mkdir -p $SOLAR_PROPHET_STORE_DIR/plot && mkdir -p $SOLAR_PROPHET_STORE_DIR/csv &&\
     python3 ../solar_prophet.py --panel_name "Balkon KW Solakon SK-011113" \
-	    --panel_direction 180 \
+	    --panel_direction 188 \
 	    --panel_slope 37 \
 	    --panel_area 3.905 \
-	    --panel_efficiency 100 \
-	    --system_barrier 30 \
+	    --panel_efficiency 20 \
+	    --panel_bifacial 40 \
+	    --panel_albedo 10 \
+	    --system_barrier 40 \
 	    --inverter_limit 600 \
 	    --battery_split 100 \
 	    --battery_full 1600 \

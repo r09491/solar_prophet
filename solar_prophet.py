@@ -4,7 +4,7 @@ __doc__="""
 Estimates the power of a solar panel dependent on different factors
 like location and pannel attitude
 """
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __author__ = "sepp.heid@t-online.de"
 
 
@@ -29,12 +29,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(os.path.basename(sys.argv[0]))
 
-""" DWD Average Direct Sun Radiation per month """
-METEO = (  21000 / 31 * 60,  41000 / 28 * 60, 110000 / 31 * 60,
-          121000 / 30 * 60, 159000 / 31 * 60, 162000 / 30 * 60,
-          161000 / 31 * 60, 140000 / 31 * 60,  92000 / 30 * 60,
-           56000 / 31 * 60,  22000 / 30 * 60,  19000 / 31 * 60 )
-
 
 def get_vector(azimuth, altitude):
     azi, alt = np.radians(azimuth), np.radians(altitude) 
@@ -46,7 +40,7 @@ def get_vector(azimuth, altitude):
 
 class Panel_Power(object):
 
-    def __init__(self, lat, lon, name, direction, slope, area, efficiency, system_barrier,
+    def __init__(self, lat, lon, name, direction, slope, area, efficiency, bifacial, albedo,system_barrier,
                  inverter_limit, battery_split, battery_full, battery_first, day):
         tzinfo = datetime.now().astimezone().tzinfo
         start = datetime(day.year, day.month, day.day, tzinfo=tzinfo)
@@ -64,18 +58,31 @@ class Panel_Power(object):
         sunrads = np.array(rads)[is_sun]
         sunvecs = np.array(vecs)[is_sun]
 
-        # Consider the weather conditions in the month
-        meteorads = sunrads * (METEO[day.month - 1] / sunrads.sum())
+        # Consider panel features 
+        best_w = sunrads*area*(efficiency+albedo)
+        best_w -= albedo*best_w
+        
+        # Cosine between actual vector to sun and norm vector of panel
+        suncos = np.dot(sunvecs, get_vector(direction, slope))
 
-        # Consider panel features
-        best_w = meteorads*area*efficiency
-        best_w[best_w < system_barrier] = 0
+        # Consider attitude of panel and direct radiation from the front
+        direct_w = best_w*suncos
+        direct_w[suncos<0] = 0
 
-        # Consider attitude
-        tot_w = best_w * np.dot(sunvecs, get_vector(direction, slope))
+        tot_w = direct_w
+        
+        # Consider attitude of panel and bifacial radiation from the rear
+        bifacial_w = best_w*suncos
+        bifacial_w[suncos>=0] = 0
+        bifacial_w *= -bifacial
+        
+        tot_w += bifacial_w
 
-        # Consider system limits
-        tot_w[tot_w < system_barrier] = 0
+        # Consider the albedo effect
+        tot_w += albedo*tot_w
+
+        # Consider start barrier        
+        tot_w[:np.where(tot_w >= system_barrier)[0][0]] = 0
 
         if battery_first:
             """ The power is delivered to the battery first """
@@ -120,9 +127,8 @@ class Panel_Power(object):
         lost_wh = lost_w.cumsum()/60
 
         data = {'azimuth':sunazis, 'altitude':sunalts,'sunrads':sunrads,
-                'meteorads':meteorads, 'best_w':best_w, 'tot_w':tot_w,
-                'house_w':house_w, 'bat_w':bat_w,'lost_w':lost_w,
-                'house_wh':house_wh, 'bat_wh':bat_wh,'lost_wh':lost_wh}
+                'best_w':best_w, 'tot_w':tot_w, 'house_w':house_w, 'bat_w':bat_w,
+                'lost_w':lost_w, 'house_wh':house_wh, 'bat_wh':bat_wh,'lost_wh':lost_wh}
         self.df = pd.DataFrame(data = data, index = stamps[is_sun])
 
         self.efficiency = efficiency
@@ -142,7 +148,6 @@ class Panel_Power(object):
         azis = self.df.azimuth
         alts = self.df.altitude
         rads = self.df.sunrads
-        meteos = self.df.meteorads
         best_w = self.df.best_w
         tot_w = self.df.tot_w
         name = self.name
@@ -173,11 +178,6 @@ class Panel_Power(object):
         text += f' Total:"{np.sum(rads/60):.0f}Wh/m²"'
         logger.info(text)
 
-        text = f'Meteo # Mean:"{np.mean(meteos):.0f}W/m²",'
-        text += f' Max:"{np.max(meteos):.0f}W/m²",'
-        text += f' Total:"{np.sum(meteos/60):.0f}Wh/m²"'
-        logger.info(text)
-        
         text = f'Harvest # Rise: "{dates[tot_w>0][0].strftime("%H:%M %Z")}",'
         text += f' Set:"{dates[tot_w>0][-1].strftime("%H:%M %Z")}",'
         text += f' "{(dates[tot_w>0][-1] - dates[tot_w>0][0]).total_seconds()/3600:.1f}h"'
@@ -199,7 +199,6 @@ class Panel_Power(object):
         azis = self.df.azimuth
         alts = self.df.altitude
         rads = self.df.sunrads
-        meteos = self.df.meteorads
         best_w = self.df.best_w
         tot_w = self.df.tot_w
         house_w = self.df.house_w
@@ -250,7 +249,6 @@ class Panel_Power(object):
 
         
         axes[2].plot(dates, rads, color='red', label='SUN')
-        axes[2].plot(dates, meteos, color='blue', label='METEO')
         axes[2].legend(loc="upper left")    
         axes[2].grid(which='major', linestyle='-', linewidth=2, axis='both')
         axes[2].grid(which='minor', linestyle='--', linewidth=1, axis='x')
@@ -258,7 +256,6 @@ class Panel_Power(object):
 
         title = f'Direct Radiation '
         title +=  f' {np.mean(rads):.0f}W/m²^{np.max(rads):.0f}W/m² |'
-        title +=  f' {np.mean(meteos):.0f}W/m²^{np.max(meteos):.0f}W/m²'
         axes[2].set_title(title)
 
         axes[2].set_ylabel('Radiation [W/m²]')
@@ -365,6 +362,12 @@ def parse_arguments():
     parser.add_argument('--panel_efficiency', type = float, default = 100.0,
                         help = 'The efficiency of the panel [%%]. Blue Sky ~ 180. Mist ~ 20')
 
+    parser.add_argument('--panel_bifacial', type = float, default = 0.0,
+                        help = 'The bifacial factor of the panel [%%]')
+
+    parser.add_argument('--panel_albedo', type = float, default = 0.0,
+                        help = 'The albedo factor of the panel [%%]')
+
     parser.add_argument('--system_barrier', type = float, default = 20.0,
                         help = 'The threshold above which the system (solarbank, inverter, powerstation) is working [W]')
 
@@ -414,33 +417,41 @@ def main():
         logger.error(f'The slope of the panel is out of range  "{args.panel_slope}"')
         return 4
 
-    if args.panel_efficiency < 0 or args.panel_efficiency > 300:
+    if args.panel_efficiency < 0 or args.panel_efficiency > 100:
         logger.error(f'The efficiency of the panel is out of range  "{args.panel_efficiency}"')
         return 5
 
+    if args.panel_bifacial < 0 or args.panel_bifacial > 60:
+        logger.error(f'The bifacial factor of the panel is out of range  "{args.panel_bifacial}"')
+        return 6
+
+    if args.panel_albedo < 0 or args.panel_albedo > 30:
+        logger.error(f'The albedo of the panel is out of range  "{args.panel_albedo}"')
+        return 7
+    
     if args.system_barrier < 0:
         logger.error(f'The system barrier is out of range  "{args.system_barrier}"')
-        return 6
+        return 8
 
     if args.inverter_limit is not None and (args.inverter_limit < 0 or args.inverter_limit > 800):
         logger.error(f'The inverter limit is out of range  "{args.inverter_limit}"')
-        return 7
+        return 9
     
     if args.battery_split is not None and args.battery_split < 0:
         logger.error(f'The split power is out of range  "{args.battery_split}"')
-        return 8
+        return 10
 
     if args.battery_full is not None and args.battery_full < 0:
         logger.error(f'The full energy is out of range  "{args.battery_full}"')
-        return 9
+        return 11
 
     if args.battery_first and args.battery_split is None and args.battery_full is None:
         logger.error(f'The combination of battery parameters is illegal.')
-        return 10
+        return 12
         
     if not args.csv is None and not os.path.isdir(args.csv):
         logger.error(f'The directory to save the CSV does not exist "{args.csv}"')
-        return 11
+        return 13
 
     
     logger.info(f'Estimating the harvest of "{args.panel_name}" on "{args.forecast_day}"' )
@@ -454,6 +465,9 @@ def main():
     if args.inverter_limit is not None:
         text += f', Inverter Limit: "{args.inverter_limit:.0f}W"' 
     logger.info(text)
+    text = f' Bifacial: "{args.panel_bifacial:.0f}%"'
+    text += f', Albedo: "{args.panel_albedo:.0f}%"'
+    logger.info(text)
 
     pp = Panel_Power(args.lat, 
                      args.lon, 
@@ -462,6 +476,8 @@ def main():
                      args.panel_slope, 
                      args.panel_area,
                      args.panel_efficiency / 100,
+                     args.panel_bifacial / 100,
+                     args.panel_albedo / 100,
                      args.system_barrier,
                      args.inverter_limit,
                      args.battery_split,
