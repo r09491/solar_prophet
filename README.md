@@ -3,11 +3,12 @@ Estimate the power of solar panels for a given day dependent on various factors
 'solar_prophet.py' is the only script provided. It is dependent on 'pysolar', 'pandas' and 'matplotlib' to be installed somehow.
 
 ```
-~/solar_prophet/scripts $ solar_prophet.py -h
+~/solar_prophet $ ./solar_prophet.py -h
 usage: solar_prophet.py [-h] [--version] [--lat LAT] [--lon LON] [--panel_name PANEL_NAME] [--panel_direction PANEL_DIRECTION]
                         [--panel_slope PANEL_SLOPE] [--panel_area PANEL_AREA] [--panel_efficiency PANEL_EFFICIENCY]
-                        [--system_barrier SYSTEM_BARRIER] [--inverter_limit INVERTER_LIMIT] [--battery_split BATTERY_SPLIT]
-                        [--battery_full BATTERY_FULL] [--battery_first] [--csv CSV] [--plot PLOT]
+                        [--panel_bifacial PANEL_BIFACIAL] [--panel_albedo PANEL_ALBEDO] [--system_barrier SYSTEM_BARRIER]
+                        [--inverter_limit INVERTER_LIMIT] [--battery_split BATTERY_SPLIT] [--battery_full BATTERY_FULL]
+                        [--battery_first] [--csv CSV] [--plot PLOT]
                         [forecast_day]
 
 Estimates the power and energy of a solar panel
@@ -30,6 +31,10 @@ options:
                         The size of the panel area [m²]
   --panel_efficiency PANEL_EFFICIENCY
                         The efficiency of the panel [%]. Blue Sky ~ 180. Mist ~ 20
+  --panel_bifacial PANEL_BIFACIAL
+                        The bifacial factor of the panel [%]
+  --panel_albedo PANEL_ALBEDO
+                        The albedo factor of the panel [%]
   --system_barrier SYSTEM_BARRIER
                         The threshold above which the system (solarbank, inverter, powerstation) is working [W]
   --inverter_limit INVERTER_LIMIT

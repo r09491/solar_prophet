@@ -59,7 +59,7 @@ class Panel_Power(object):
         sunvecs = np.array(vecs)[is_sun]
 
         # Consider panel features 
-        best_w = sunrads*area*(efficiency+albedo)
+        best_w = sunrads*area*efficiency
         best_w -= albedo*best_w
         
         # Cosine between actual vector to sun and norm vector of panel
